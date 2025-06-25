@@ -4,7 +4,8 @@
   "description": "mean api",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon ."
+    "dev": "nodemon .",
+    "start": "npm run dev"
   },
   "author": "carlos",
   "license": "ISC",
