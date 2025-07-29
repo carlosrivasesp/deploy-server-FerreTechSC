@@ -1,19 +1,23 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const entregasSchema=new mongoose.Schema({
-    ventaId:{type:mongoose.Schema.Types.ObjectId,ref:'Venta'},
-    direccion:{
-        type:String,
-        default:'Pendiente'
-    },
-    estado:{
-        type:String,
-        enum:['Pendiente','En proceso','Finalizado'],
-        default:'Pendiente'
-    },
-    fechaInicio: { type: Date, default: Date.now },
-    fechaFin: { type: Date, default: Date.now },
-})
+const entregasSchema = new mongoose.Schema({
+  ventaId: { type: mongoose.Schema.Types.ObjectId, ref: "Venta" },
+  direccion: {
+    type: String,
+    default: "Pendiente",
+  },
+  distrito: {
+    type: String,
+    default: "Pendiente",
+    enum: ["Surco", "Barranco", "Miraflores"]
+  },
+  estado: {
+    type: String,
+    enum: ["Pendiente", "En proceso", "Finalizado"],
+    default: "Pendiente",
+  },
+  fechaEntrega: { type: Date, default: Date.now },
+  costo: { type: Number, default: 0 },
+});
 
-const Entregas=mongoose.model('Entregas',entregasSchema);
-module.exports=Entregas;
+module.exports = mongoose.model("Entrega", entregasSchema);
