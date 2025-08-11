@@ -9,7 +9,7 @@ const entregasSchema = new mongoose.Schema({
   distrito: {
     type: String,
     default: "Pendiente",
-    enum: ["Surco", "Barranco", "Miraflores"]
+    enum: ["Pendiente", "Surco", "Barranco", "Miraflores"]
   },
   estado: {
     type: String,

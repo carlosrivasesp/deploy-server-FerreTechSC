@@ -128,7 +128,7 @@ exports.registrarVenta = async (req, res) => {
     res.json(nuevaVenta);
 
     if (servicioDelivery) {
-      const entrega = new Entregas({
+      const entrega = new Entrega({
         ventaId: nuevaVenta._id
       });
       await entrega.save();
