@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const cors = require("cors");
 
 //routes
+const operacion = require('./routes/operacionRoute');
 const productos = require('./routes/productoRoute');
 const ventas = require('./routes/ventasRoute');
 const compras = require('./routes/comprasRoute');
@@ -41,6 +42,10 @@ app.use('/api/getProduct', productos);
 app.use('/api/deleteProduct', productos);
 app.use('/api/exportarProductos', productos);
 app.use('/api/obtenerProdProv', productos);
+
+//operacion
+
+app.use('/api/operacion', operacion)
 
 //ventas
 app.use('/api/registrarVenta', ventas);
