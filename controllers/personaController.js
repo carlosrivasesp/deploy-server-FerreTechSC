@@ -4,14 +4,11 @@ const Persona = require('../models/persona');
 
 exports.getPersonas = async (req, res) => {
   try {
-    const { tipo } = req.query;
+    const { tipoPersona } = req.query;
 
     let filter = {};
-    if (tipo) {
-      if (![ '1', '2' ].includes(tipo)) {
-        return res.status(400).json({ message: "El parámetro 'tipo' debe ser 1 (Cliente) o 2 (Proveedor)" });
-      }
-      filter.tipoPersona = Number(tipo);
+    if (tipoPersona) {
+      filter.tipoPersona = tipoPersona;
     }
 
     const personas = await Persona.find(filter);
