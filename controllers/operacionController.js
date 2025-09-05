@@ -282,7 +282,18 @@ exports.registrarCotizacion = async (req, res) => {
       subtotal += item.cantidad * producto.precio;
     }
 
+    const lastCompra = await Operacion.findOne({
+      tipoOperacion: 3,
+    }).sort({ nroComprobante: -1 });
+
+    let nroComprobante = "001";
+    if (lastCompra && lastCompra.nroComprobante) {
+      const siguiente = parseInt(lastCompra.nroComprobante) + 1;
+      nroComprobante = String(siguiente).padStart(3, "0");
+    }
+
     const nuevaCotizacion = new Operacion({
+      nroComprobante,
       fechaEmision: Date.now(),
       fechaVenc: new Date(new Date().setDate(new Date().getDate() + 7)),
       tipoOperacion: 3,
@@ -321,7 +332,6 @@ exports.registrarCotizacion = async (req, res) => {
 
     await nuevaCotizacion.save();
 
-    res.json(nuevaCotizacion);
     res.status(201).json({ message: "Cotización registrada correctamente", nuevaCotizacion });
 
   } catch (error) {
@@ -353,7 +363,13 @@ exports.obtenerOperaciones = async (req, res) => {
 exports.obtenerOperacion = async (req, res) => {
   try {
     const operacion = await Operacion.findById(req.params.id)
-      .populate("detalles")
+      .populate({
+        path: "detalles",
+        populate: {
+          path: "producto", // esto hace que cada detalle incluya los datos del producto
+          model: "Producto"
+        }
+      })
       .populate("cliente")
       .populate("proveedor");
 
@@ -379,10 +395,10 @@ exports.actualizarEstado = async (req, res) => {
     switch (operacion.tipoOperacion) {
       case 1:
       case 2:
-        if (nuevoEstado !== "Pagado") {
-          return res.status(400).json({ message: "El estado solo puede ser 'Pagado'" });
+        if (nuevoEstado !== "Pagado" && nuevoEstado !== "Anulado") {
+          return res.status(400).json({ message: "El estado solo puede ser 'Pagado' o 'Anulado'" });
         }
-        operacion.estado = "Pagado";
+        operacion.estado = nuevoEstado;
         await operacion.save();
         return res.json({ message: "Estado actualizado correctamente", operacion });
 

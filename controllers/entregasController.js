@@ -1,6 +1,6 @@
 const ExcelJS = require("exceljs");
 const Entrega = require("../models/entregas.js");
-const Venta = require("../models/venta.js");
+const Operacion = require("../models/operacion.js");
 
 exports.getEntregas = async (req, res) => {
   try {

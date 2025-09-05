@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const entregasSchema = new mongoose.Schema({
-  ventaId: { type: mongoose.Schema.Types.ObjectId, ref: "Venta" },
+  ventaId: { type: mongoose.Schema.Types.ObjectId, ref: "Operacion" },
   direccion: {
     type: String,
     default: "Pendiente",
