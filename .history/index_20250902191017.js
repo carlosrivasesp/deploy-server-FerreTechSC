@@ -33,9 +33,6 @@ app.use(express.json());
 //Usuario
 app.use('/api/auth', require('./routes/usuarioRoute'));
 
-//personas
-app.use('/api/personas', require('./routes/personaRoutes.js'));
-
 //producto
 app.use('/api/createProduct', productos);
 app.use('/api/getProducts', productos);
