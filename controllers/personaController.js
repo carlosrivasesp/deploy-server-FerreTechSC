@@ -89,3 +89,40 @@ exports.createCliente = async (req, res) => {
 
   }
 };
+
+exports.createProveedor = async (req, res) => {
+  try {
+    const { nombre, tipoDoc, nroDoc, telefono, correo } = req.body;
+
+    // Validaciones básicas
+    if (!nombre || !tipoDoc || !nroDoc) {
+      return res.status(400).json({ message: 'nombre, tipoDoc y nroDoc son obligatorios' });
+    }
+    if (!['DNI', 'RUC'].includes(tipoDoc)) {
+      return res.status(400).json({ message: "tipoDoc debe ser 'DNI' o 'RUC'" });
+    }
+
+    // Normalizaciones
+    const payload = {
+      nombre: nombre,
+      tipoDoc,
+      nroDoc: String(nroDoc).trim(),
+      telefono: telefono?.trim(),
+      correo: correo?.trim()?.toLowerCase(),
+      estado: 'Activo',        // por defecto
+      tipoPersona: 2,          // Proveedor
+    };
+
+    // Verificar nroDoc único
+    const exists = await Persona.findOne({ nroDoc: payload.nroDoc });
+    if (exists) {
+      return res.status(409).json({ message: 'proveedor ya registrado' });
+    }
+
+    const persona = await Persona.create(payload);
+    return res.status(201).json(persona);
+  } catch (err) {
+    console.error('createProveedor error:', err);
+    res.status(500).json({ message: 'Error al crear proveedor' });
+  }
+};
