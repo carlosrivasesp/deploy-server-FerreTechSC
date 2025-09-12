@@ -1,5 +1,5 @@
 const Pedido = require('../models/pedido.js');
-const DetallePedido=require('../models/detallePedido.js');
+const DetallePedido = require('../models/detallePedido.js');
 const Producto = require("../models/producto");
 const mongoose = require("mongoose");
 
@@ -14,6 +14,31 @@ exports.obtenerPedidos = async (req, res) => {
     res.status(500).json({ mensaje: 'Error al obtener pedidos', error: error.message });
   }
 };
+
+exports.obtenerPedidoCliente = async (req, res) => {
+  try {
+    const pedido = await Pedido.find()
+      .populate({
+        path: 'Cliente',
+        match: { nroDoc: req.params.nroDoc},
+        select: 'nombre tipoDoc nroDoc telefono correo'
+      })
+      .populate('detalles');
+    
+    const pedidoCliente=pedido.filter(p=>p.Cliente!=null);
+
+    if(pedidoCliente.length===0){
+      return res.status(400).json({mensaje:"No existen pedidos para este cliente"})
+    }
+
+
+    res.json(pedidoCliente);
+  }
+  catch (error) {
+    console.log(error);
+    res.status(500).json({ mensaje: "Error al obtener el pedido" })
+  }
+}
 
 
 exports.registrarPedido = async (req, res) => {
@@ -67,7 +92,7 @@ exports.registrarPedido = async (req, res) => {
       subtotal += parseFloat((item.cantidad * producto.precio).toFixed(2));
     }
 
-    const nuevoPedido= new Pedido({
+    const nuevoPedido = new Pedido({
       estado: "Pagado",
       detalles: [],
       igv: 0,
