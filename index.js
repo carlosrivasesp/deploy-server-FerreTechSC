@@ -22,6 +22,8 @@ const devolucion = require('./routes/devolucionRoute.js');
 // En index.js
 const morgan = require('morgan');
 const entregas=require('./routes/entregasRoute.js');
+const pedido=require('./routes/pedidoRoute.js');
+
 //creamos servidor
 const app = express();
 
@@ -33,6 +35,8 @@ app.use(express.json());
 
 //Usuario
 app.use('/api/auth', require('./routes/usuarioRoute'));
+
+
 
 //producto
 app.use('/api/createProduct', productos);
@@ -133,6 +137,9 @@ app.use('/api/getEntrega',entregas);
 app.use('/api/updateEntrega',entregas);
 app.use('/api/exportarEntregas',entregas);
 
+//Pedido
+app.use('/api/registrarPedido',require('./routes/pedidoRoute.js'));
+app.use('/api/getPedidos',require('./routes/pedidoRoute.js'));
 
 app.listen(4000, ()=> {
     console.log('El puerto está corriendo perfectamente');
