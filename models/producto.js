@@ -35,6 +35,9 @@ const productoSchema = mongoose.Schema({
     estado: {
         type: String, 
         enum: ['Activo', 'Descontinuado']
+    },
+    imageUrl: {
+        type: String
     }
 });
 

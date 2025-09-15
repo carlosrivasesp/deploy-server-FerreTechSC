@@ -38,8 +38,6 @@ exports.createProduct = async (req, res) => {
     }
 };
 
-
-
 exports.getProducts = async (req, res) => {
     try {
         const productos = await Producto.find().populate('categoria').populate({
@@ -57,7 +55,7 @@ exports.getProducts = async (req, res) => {
 
 exports.updateProduct = async (req,res) => {
     try {
-        const { precio, estado } = req.body;
+        const { precio, estado, imageUrl } = req.body;
         let product = await Producto.findById(req.params.id).populate('categoria').populate('marca');
 
         if (!product) {
@@ -65,6 +63,7 @@ exports.updateProduct = async (req,res) => {
         }
         product.precio = precio;
         product.estado = estado;
+        product.imageUrl = imageUrl;
 
         product = await Producto.findOneAndUpdate({_id: req.params.id}, product, {new:true});
         res.json(product);
