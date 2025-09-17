@@ -102,6 +102,7 @@ exports.iniciarSesion = async (req, res) => {
         id: usuario._id,
         nombre: usuario.nombre,
         correo: usuario.correo,
+        nroDoc:usuario.nroDoc,
         rol: usuario.rol
       }
     });
