@@ -3,31 +3,20 @@ const mongoose = require('mongoose');
 const operacionSchema = new mongoose.Schema({
     tipoOperacion: {
         type: Number,
-        enum: [1, 2, 3],
+        enum: [1, 2], //1 = pedido, 2 = cotizacion
     },
-    tipoComprobante: {
-        type: String,
-    },
-    nroComprobante: {
-        type: String
-    },
-    serie:{
-        type: String
+    nroOperacion:{
+        type: Number,
     },
     detalles: [{
         type: mongoose.Schema.Types.ObjectId, ref: 'DetalleOperacion'
     }],
-    metodoPago: {
-        type: String
-    },
     servicioDelivery: {
         type: Boolean,
     },
     cliente: {
         type: mongoose.Schema.Types.ObjectId, ref: 'Cliente',
-    },
-    proveedor: {
-        type: mongoose.Schema.Types.ObjectId, ref: 'Proveedor',
+        required: true
     },
     igv: {
         type: Number

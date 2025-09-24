@@ -137,10 +137,6 @@ app.use('/api/getEntrega',entregas);
 app.use('/api/updateEntrega',entregas);
 app.use('/api/exportarEntregas',entregas);
 
-//Pedido
-app.use('/api/registrarPedido',require('./routes/pedidoRoute.js'));
-app.use('/api/getPedidos',require('./routes/pedidoRoute.js'));
-app.use('/api/getPedidoCliente',require('./routes/pedidoRoute.js'));
 
 app.listen(4000, ()=> {
     console.log('El puerto está corriendo perfectamente');
