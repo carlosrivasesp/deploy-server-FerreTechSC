@@ -230,7 +230,6 @@ exports.obtenerOperacion = async (req, res) => {
         }
       })
       .populate("cliente")
-      .populate("proveedor");
 
     if (!operacion) {
       return res.status(404).json({ message: "Operación no encontrada" });
@@ -252,15 +251,7 @@ exports.actualizarEstado = async (req, res) => {
     }
 
     switch (operacion.tipoOperacion) {
-      case 1:
-        if (nuevoEstado !== "Pagado" && nuevoEstado !== "Anulado") {
-          return res.status(400).json({ message: "El estado solo puede ser 'Pagado' o 'Anulado'" });
-        }
-        operacion.estado = nuevoEstado;
-        await operacion.save();
-        return res.json({ message: "Estado actualizado correctamente", operacion });
-
-      case 3: 
+      case 2: 
         if (!["Pendiente", "Rechazada", "Aceptada"].includes(nuevoEstado)) {
             return res.status(400).json({ message: "Estado inválido para cotización" });
         }
