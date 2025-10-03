@@ -4,259 +4,6 @@ const Producto = require('../models/producto');
 const Entrega = require('../models/entregas');
 const mongoose = require("mongoose");
 
-exports.registrarVenta = async (req, res) => {
-  try {
-    const {
-      detalles: productos, tipoComprobante, metodoPago, cliente, servicioDelivery 
-    } = req.body;
-
-    if (!productos || !Array.isArray(productos)) {
-        return res.status(400).json({
-            mensaje: "El campo 'productos' es requerido y debe ser un array.",
-        });
-    }
-
-    if (!["FACTURA DE VENTA ELECTRONICA", "BOLETA DE VENTA ELECTRONICA"].includes(tipoComprobante)
-    ) {
-        return res.status(400).json({ 
-            mensaje: "Tipo de comprobante inválido." 
-        });
-    }
-
-    if (!["Transferencia", "Efectivo", "Tarjeta de credito","Tarjeta de debito", "Yape", "Plin"].includes(metodoPago)
-    ) {
-      return res.status(400).json({ mensaje: "Método de pago inválido." });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(cliente)) {
-        return res.status(400).json({ 
-            mensaje: "clienteId no es un ObjectId válido." 
-        });
-    }
-
-    const clienteExiste = await mongoose.model("Cliente").findById(cliente);
-    if (!clienteExiste) {
-      return res.status(404).json({ mensaje: "El cliente no existe." });
-    }
-
-    // Validar productos y calcular subtotal
-    let subtotal = 0;
-    let productosProcesados = [];
-
-    for (let item of productos) {
-      const producto = await Producto.findOne({ nombre: item.nombre });
-      if (!producto) {
-        return res
-          .status(404)
-          .json({ mensaje: `Producto ${item.nombre} no encontrado.` });
-      }
-
-      if (producto.stockActual < item.cantidad) {
-        return res.status(400).json({
-          mensaje: `Stock insuficiente para ${item.nombre}`,
-          stockActual: producto.stockActual,
-          solicitado: item.cantidad,
-        });
-      }
-      productosProcesados.push({ producto, cantidad: item.cantidad });
-      subtotal += item.cantidad * producto.precio;
-    }
-
-    // Determinar serie según comprobante
-    let serie = "";
-    if (tipoComprobante === "FACTURA DE VENTA ELECTRONICA") {
-      serie = "F01";
-    } else if (tipoComprobante === "BOLETA DE VENTA ELECTRONICA") {
-      serie = "B01";
-    }
-
-    // Buscar última venta del mismo tipo para generar correlativo
-    const lastVenta = await Operacion.findOne({
-      tipoOperacion: 1, // 1 = venta
-      tipoComprobante,
-    }).sort({ nroComprobante: -1 });
-
-    let nroComprobante = "001";
-    if (lastVenta && lastVenta.nroComprobante) {
-      const siguiente = parseInt(lastVenta.nroComprobante) + 1;
-      nroComprobante = String(siguiente).padStart(3, "0");
-    }
-
-    // Crear la venta
-    const nuevaVenta = new Operacion({
-      tipoOperacion: 1,
-      tipoComprobante,
-      metodoPago,
-      estado: "Pendiente",
-      detalles: [],
-      igv: 0,
-      total: 0,
-      cliente: new mongoose.Types.ObjectId(cliente),
-      servicioDelivery: servicioDelivery ?? false,
-      serie,
-      nroComprobante,
-    });
-
-    // Calcular IGV y total
-    const igv = subtotal * 0.18;
-    const total = subtotal + igv;
-
-    await nuevaVenta.save();
-
-    // Crear detalles
-    let detallesVenta = [];
-    for (let { producto, cantidad } of productosProcesados) {
-      const subtotal = cantidad * producto.precio;
-
-      const detalle = new DetalleOperacion({
-        operacion: nuevaVenta._id,
-        producto: producto._id,
-        codInt: producto.codInt,
-        nombre: producto.nombre,
-        cantidad,
-        precio: producto.precio,
-        subtotal,
-      });
-
-      await detalle.save();
-      detallesVenta.push(detalle._id);
-    }
-
-    nuevaVenta.detalles = detallesVenta;
-    nuevaVenta.igv = igv;
-    nuevaVenta.total = total;
-
-    await nuevaVenta.save();
-
-    // Si requiere delivery, registrar entrega
-    if (servicioDelivery) {
-      const entrega = new Entrega({
-        ventaId: nuevaVenta._id,
-      });
-      await entrega.save();
-    }
-
-    res.json(nuevaVenta);
-
-  } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ mensaje: "Error en el servidor", error: error.message });
-  }
-};
-
-exports.registrarCompra = async (req, res) => {
-  try {
-    const { detalles: productos, tipoComprobante, metodoPago, proveedor } = req.body;
-
-    // Validaciones
-    if (!productos || !Array.isArray(productos)) {
-      return res.status(400).json({ mensaje: "El campo 'productos' es requerido y debe ser un array." });
-    }
-
-    if (!["FACTURA DE COMPRA ELECTRONICA", "BOLETA DE COMPRA ELECTRONICA"].includes(tipoComprobante)) {
-      return res.status(400).json({ mensaje: "Tipo de comprobante inválido." });
-    }
-
-    if (!["Transferencia", "Efectivo", "Tarjeta de credito", "Tarjeta de debito", "Yape", "Plin"].includes(metodoPago)) {
-      return res.status(400).json({ mensaje: "Método de pago inválido." });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(proveedor)) {
-      return res.status(400).json({ mensaje: "Proveedor no es un ObjectId válido." });
-    }
-
-    const proveedorExiste = await mongoose.model("Proveedor").findById(proveedor);
-    if (!proveedorExiste) {
-      return res.status(404).json({ mensaje: "El proveedor no existe." });
-    }
-
-    // Validar productos y calcular subtotal
-    let subtotal = 0;
-    let productosProcesados = [];
-
-    for (let item of productos) {
-      const producto = await Producto.findOne({ nombre: item.nombre });
-      if (!producto) {
-        return res.status(404).json({ mensaje: `Producto ${item.nombre} no encontrado.` });
-      }
-
-      productosProcesados.push({ producto, cantidad: item.cantidad });
-      subtotal += item.cantidad * producto.precio;
-    }
-
-    // Determinar serie según comprobante
-    let serie = "";
-    if (tipoComprobante === "FACTURA DE COMPRA ELECTRONICA") {
-      serie = "F01";
-    } else if (tipoComprobante === "BOLETA DE COMPRA ELECTRONICA") {
-      serie = "B01";
-    }
-
-    // Buscar última venta del mismo tipo para generar correlativo
-    const lastCompra = await Operacion.findOne({
-      tipoOperacion: 2,
-      tipoComprobante,
-    }).sort({ nroComprobante: -1 });
-
-    let nroComprobante = "001";
-    if (lastCompra && lastCompra.nroComprobante) {
-      const siguiente = parseInt(lastCompra.nroComprobante) + 1;
-      nroComprobante = String(siguiente).padStart(3, "0");
-    }
-
-    // Crear la compra
-    const nuevaCompra = new Operacion({
-      tipoOperacion: 2, 
-      tipoComprobante,
-      metodoPago,
-      estado: "Pendiente",
-      detalles: [],
-      igv: 0,
-      total: 0,
-      proveedor: new mongoose.Types.ObjectId(proveedor),
-      serie,
-      nroComprobante
-    });
-
-    // Calcular IGV y total
-    const igv = +(subtotal * 0.18).toFixed(2);
-    const total = +(subtotal + igv).toFixed(2);
-
-    // Crear detalles
-    let detallesCompra = [];
-    for (let { producto, cantidad } of productosProcesados) {
-      const subtotal = cantidad * producto.precio;
-
-      const detalle = new DetalleOperacion({
-        operacion: nuevaCompra._id,
-        producto: producto._id,
-        codInt: producto.codInt,
-        nombre: producto.nombre,
-        cantidad,
-        precio: producto.precio,
-        subtotal,
-      });
-
-      await detalle.save();
-      detallesCompra.push(detalle._id);
-    }
-
-    nuevaCompra.detalles = detallesCompra;
-    nuevaCompra.igv = igv;
-    nuevaCompra.total = total;
-
-    await nuevaCompra.save();
-
-    res.json(nuevaCompra);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: "Error en el servidor", error: error.message });
-  }
-};
-
 exports.registrarCotizacion = async (req, res) => {
   try {
     const { cliente, detalles: productos } = req.body;
@@ -282,21 +29,21 @@ exports.registrarCotizacion = async (req, res) => {
       subtotal += item.cantidad * producto.precio;
     }
 
-    const lastCompra = await Operacion.findOne({
-      tipoOperacion: 3,
-    }).sort({ nroComprobante: -1 });
+    const lastCotizacion = await Operacion.findOne({
+      tipoOperacion: 2,
+    }).sort({ nroOperacion: -1 });
 
-    let nroComprobante = "001";
-    if (lastCompra && lastCompra.nroComprobante) {
-      const siguiente = parseInt(lastCompra.nroComprobante) + 1;
-      nroComprobante = String(siguiente).padStart(3, "0");
+    let nroOperacion = "001";
+    if (lastCotizacion && lastCotizacion.nroOperacion) {
+      const siguiente = parseInt(lastCotizacion.nroOperacion) + 1;
+      nroOperacion = String(siguiente).padStart(3, "0");
     }
 
     const nuevaCotizacion = new Operacion({
-      nroComprobante,
+      nroOperacion,
       fechaEmision: Date.now(),
       fechaVenc: new Date(new Date().setDate(new Date().getDate() + 7)),
-      tipoOperacion: 3,
+      tipoOperacion: 2,
       estado: "Pendiente",
       detalles: [],
       total: 0,
@@ -340,6 +87,119 @@ exports.registrarCotizacion = async (req, res) => {
   }
 };
 
+exports.registrarPedido = async (req, res) => {
+  try {
+    const {
+      detalles: productos,
+      cliente,
+    } = req.body;
+
+    // Validaciones básicas
+    if (!productos || !Array.isArray(productos)) {
+      return res
+        .status(400)
+        .json({
+          mensaje: "El campo 'productos' es requerido y debe ser un array.",
+        });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(cliente)) {
+      return res
+        .status(400)
+        .json({ mensaje: "clienteId no es un ObjectId válido." });
+    }
+
+    const clienteExiste = await mongoose.model("Cliente").findById(cliente);
+    if (!clienteExiste) {
+      return res.status(404).json({ mensaje: "El cliente no existe." });
+    }
+
+    // Validar productos y calcular subtotal
+    let subtotal = 0;
+    let productosProcesados = [];
+
+    for (let item of productos) {
+      const producto = await Producto.findOne({ nombre: item.nombre });
+      if (!producto) {
+        return res
+          .status(404)
+          .json({ mensaje: `Producto ${item.nombre} no encontrado.` });
+      }
+
+      if (producto.stockActual < item.cantidad) {
+        return res.status(400).json({
+          mensaje: `Stock insuficiente para ${item.nombre}`,
+          stockActual: producto.stockActual,
+          solicitado: item.cantidad,
+        });
+      }
+
+      productosProcesados.push({ producto, cantidad: item.cantidad });
+      subtotal += parseFloat((item.cantidad * producto.precio).toFixed(2));
+    }
+
+    const lastPedido = await Operacion.findOne({
+      tipoOperacion: 1,
+    }).sort({ nroOperacion: -1 });
+
+    let nroOperacion = "001";
+    if (lastPedido && lastPedido.nroOperacion) {
+      const siguiente = parseInt(lastPedido.nroOperacion) + 1;
+      nroOperacion = String(siguiente).padStart(3, "0");
+    }
+
+    const nuevoPedido = new Operacion({
+      nroOperacion,
+      fechaEmision: Date.now(),
+      fechaVenc: new Date(new Date().setDate(new Date().getDate())),
+      tipoOperacion: 1,
+      estado: "Pagado",
+      detalles: [],
+      total: 0,
+      cliente: new mongoose.Types.ObjectId(cliente)
+    });
+
+    // Calcular IGV y total
+    const igv = subtotal * 0.18;
+    const total = subtotal + igv;
+
+    await nuevoPedido.save();
+
+    // Crear detalles
+    let detallesPedido = [];
+    for (let { producto, cantidad } of productosProcesados) {
+      const subtotal = cantidad * producto.precio;
+
+      const detalle = new DetalleOperacion({
+        operacion: nuevoPedido._id,
+        producto: producto._id,
+        codInt: producto.codInt,
+        nombre: producto.nombre,
+        cantidad,
+        precio: producto.precio,
+        subtotal,
+      });
+
+      await detalle.save();
+      detallesPedido.push(detalle._id);
+    }
+
+    nuevoPedido.detalles = detallesPedido;
+    nuevoPedido.igv = parseFloat(igv.toFixed(2));
+    nuevoPedido.total = parseFloat(total.toFixed(2));
+
+    await nuevoPedido.save();
+    res.json(nuevoPedido);
+
+
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ mensaje: "Error en el servidor", error: error.message });
+  }
+};
+
 exports.obtenerOperaciones = async (req, res) => {
   try {
     const { tipoOperacion } = req.query;
@@ -352,7 +212,6 @@ exports.obtenerOperaciones = async (req, res) => {
     const operaciones = await Operacion.find(filter)
       .populate('cliente')
       .populate('detalles')
-      .populate('proveedor');
 
     res.status(200).json(operaciones);
   } catch (error) {
@@ -371,7 +230,6 @@ exports.obtenerOperacion = async (req, res) => {
         }
       })
       .populate("cliente")
-      .populate("proveedor");
 
     if (!operacion) {
       return res.status(404).json({ message: "Operación no encontrada" });
@@ -393,16 +251,7 @@ exports.actualizarEstado = async (req, res) => {
     }
 
     switch (operacion.tipoOperacion) {
-      case 1:
-      case 2:
-        if (nuevoEstado !== "Pagado" && nuevoEstado !== "Anulado") {
-          return res.status(400).json({ message: "El estado solo puede ser 'Pagado' o 'Anulado'" });
-        }
-        operacion.estado = nuevoEstado;
-        await operacion.save();
-        return res.json({ message: "Estado actualizado correctamente", operacion });
-
-      case 3: 
+      case 2: 
         if (!["Pendiente", "Rechazada", "Aceptada"].includes(nuevoEstado)) {
             return res.status(400).json({ message: "Estado inválido para cotización" });
         }
@@ -419,7 +268,7 @@ exports.actualizarEstado = async (req, res) => {
 
             const igv = +(subtotal * 0.18).toFixed(2);
             const total = +(subtotal + igv).toFixed(2);
-
+/*
             const nuevaVenta = new Operacion({
             tipoOperacion: 1,
             cliente: operacion.cliente,
@@ -436,7 +285,7 @@ exports.actualizarEstado = async (req, res) => {
             });
 
             await nuevaVenta.save();
-
+*/
             operacion.estado = "Aceptada";
             await operacion.save();
 
@@ -456,3 +305,26 @@ exports.actualizarEstado = async (req, res) => {
     res.status(500).json({ message: "Error al actualizar estado de la operación" });
   }
 };
+
+exports.obtenerPedidoCliente = async (req, res) => {
+  try {
+    const pedido = await Operacion.find()
+      .populate({
+        path: 'cliente',
+        match: { nroDoc: req.params.nroDoc},
+        select: 'nombre tipoDoc nroDoc telefono correo'
+      })
+      .populate('detalles');
+    
+    const pedidoCliente=pedido.filter(p=>p.cliente!=null);
+
+    if(pedidoCliente.length===0){
+      return res.status(400).json({mensaje:"No existen pedidos para este cliente"})
+    }
+    res.json(pedidoCliente);
+  }
+  catch (error) {
+    console.log(error);
+    res.status(500).json({ mensaje: "Error al obtener el pedido" })
+  }
+}
