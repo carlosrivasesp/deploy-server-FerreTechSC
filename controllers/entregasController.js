@@ -5,7 +5,7 @@ const Operacion = require("../models/operacion.js");
 exports.getEntregas = async (req, res) => {
   try {
     const entregas = await Entrega.find().populate({
-      path: "ventaId",
+      path: "operacionId",
       populate: [{ path: "detalles" }],
     });
     res.json(entregas);
@@ -17,7 +17,7 @@ exports.getEntregas = async (req, res) => {
 exports.getEntrega = async (req, res) => {
   try {
     let entrega = await Entrega.findById(req.params.id).populate({
-      path: "ventaId",
+      path: "operacionId",
       populate: [{ path: "detalles" }],
     });
 

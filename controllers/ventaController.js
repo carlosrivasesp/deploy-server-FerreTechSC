@@ -1,5 +1,5 @@
 const Venta = require("../models/venta");
-const DetalleVenta = require("../models/detalleVenta");
+const DetalleVenta = require("../models/detalleventa");
 const Producto = require("../models/producto");
 const Salida = require("../models/salidaProducto");
 const Lugar = require("../models/lugaresEntrega");

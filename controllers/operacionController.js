@@ -2,6 +2,8 @@ const DetalleOperacion = require('../models/detalleOperacion');
 const Operacion = require('../models/operacion');
 const Producto = require('../models/producto');
 const Entrega = require('../models/entregas');
+const Venta = require('../models/venta')
+const DetalleVenta = require('../models/detalleventa')
 const mongoose = require("mongoose");
 
 exports.registrarCotizacion = async (req, res) => {
@@ -92,6 +94,9 @@ exports.registrarPedido = async (req, res) => {
     const {
       detalles: productos,
       cliente,
+      tipoComprobante,
+      metodoPago,
+      servicioDelivery
     } = req.body;
 
     // Validaciones básicas
@@ -189,8 +194,56 @@ exports.registrarPedido = async (req, res) => {
     nuevoPedido.total = parseFloat(total.toFixed(2));
 
     await nuevoPedido.save();
-    res.json(nuevoPedido);
 
+    const nuevaVenta = new Venta({
+      tipoComprobante: tipoComprobante,
+      metodoPago: metodoPago,
+      cliente: new mongoose.Types.ObjectId(cliente),
+      fechaEmision: Date.now(),
+      fechaVenc: new Date(),
+      igv: parseFloat(igv.toFixed(2)),
+      total: parseFloat(total.toFixed(2)),
+      estado: "Registrado",
+      detalles: [],
+    });
+
+    await nuevaVenta.save();
+
+    // Crear los detalles de la venta
+    let detallesVenta = [];
+    for (let { producto, cantidad } of productosProcesados) {
+      const subtotal = cantidad * producto.precio;
+      const detalleVenta = new DetalleVenta({
+        venta: nuevaVenta._id,
+        producto: producto._id,
+        nombre: producto.nombre,
+        cantidad,
+        precio: producto.precio,
+        subtotal,
+      });
+
+      await detalleVenta.save();
+      detallesVenta.push(detalleVenta._id);
+    }
+
+    nuevaVenta.detalles = detallesVenta;
+    await nuevaVenta.save();
+
+    if (servicioDelivery) {
+      const entrega = new Entrega({
+        pedidoId: nuevoPedido._id, // 👈 relaciona con el pedido
+        estado: "Pendiente", // puedes personalizar este estado
+        fechaRegistro: new Date(),
+      });
+      await entrega.save();
+    }
+
+     res.json({
+      mensaje: "Pedido y venta registrados correctamente",
+      pedido: nuevoPedido,
+      venta: nuevaVenta,
+      servicioDelivery: !!servicioDelivery
+    });
 
   } catch (error) {
     console.error(error);
