@@ -264,7 +264,11 @@ exports.obtenerOperaciones = async (req, res) => {
 
     const operaciones = await Operacion.find(filter)
       .populate('cliente')
-      .populate('detalles')
+      .populate({
+        path: 'detalles',
+        populate: 'producto'
+      })
+      .populate('salidas');
 
     res.status(200).json(operaciones);
   } catch (error) {
@@ -296,7 +300,7 @@ exports.obtenerOperacion = async (req, res) => {
 
 exports.actualizarEstado = async (req, res) => {
   try {
-    const { nuevoEstado, datosVenta } = req.body; 
+    const { nuevoEstado } = req.body; 
     
     const operacion = await Operacion.findById(req.params.id).populate('detalles');
     if (!operacion) {
@@ -304,6 +308,23 @@ exports.actualizarEstado = async (req, res) => {
     }
 
     switch (operacion.tipoOperacion) {
+      case 1:
+        if (!["Pagado", "En preparación", "Enviado", "Entregado", "Cancelado"].includes(nuevoEstado)) {
+            return res.status(400).json({ message: "Estado inválido para pedido" });
+        }
+
+        if (
+          ["En preparación", "Enviado", "Entregado"].includes(operacion.estado) &&
+          nuevoEstado === "Cancelado"
+        ) {
+          return res.status(400).json({ message: "No se puede cancelar un pedido en preparación o posterior" });
+        }
+
+        operacion.estado = nuevoEstado;
+        await operacion.save();
+
+        return res.json({ message: "Estado del pedido actualizado correctamente", operacion });
+
       case 2: 
         if (!["Pendiente", "Rechazada", "Aceptada"].includes(nuevoEstado)) {
             return res.status(400).json({ message: "Estado inválido para cotización" });
@@ -321,24 +342,6 @@ exports.actualizarEstado = async (req, res) => {
 
             const igv = +(subtotal * 0.18).toFixed(2);
             const total = +(subtotal + igv).toFixed(2);
-/*
-            const nuevaVenta = new Operacion({
-            tipoOperacion: 1,
-            cliente: operacion.cliente,
-            detalles: operacion.detalles.map(d => d._id),
-            estado: "Pagado",
-            fechaEmision: new Date(),
-            fechaVenc: new Date(),
-            tipoComprobante: datosVenta?.tipoComprobante,
-            metodoPago: datosVenta?.metodoPago,
-            servicioDelivery: datosVenta?.servicioDelivery ?? false,
-            subtotal,
-            igv,
-            total
-            });
-
-            await nuevaVenta.save();
-*/
             operacion.estado = "Aceptada";
             await operacion.save();
 
@@ -351,7 +354,6 @@ exports.actualizarEstado = async (req, res) => {
         operacion.estado = nuevoEstado;
         await operacion.save();
         return res.json({ message: "Estado actualizado correctamente", operacion });
-
     }
   } catch (error) {
     console.error(error);

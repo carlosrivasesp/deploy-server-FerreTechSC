@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const Usuario = require('../models/usuario');
+const Cliente = require('../models/cliente')
 
 exports.registerUsuario = async (req, res) => {
     try {
@@ -28,12 +29,30 @@ exports.registerUsuario = async (req, res) => {
         });
 
         await nuevoUsuario.save();
+
+       // 🧾 Crear cliente asociado si el rol es cliente
+        if (nuevoUsuario.rol === 'cliente') {
+          const tipoDocCliente =
+            nuevoUsuario.tipoDoc?.toUpperCase() === 'DNI' ? 'DNI' : 'RUC';
+
+          const nuevoCliente = new Cliente({
+            nombre: nuevoUsuario.nombre,
+            tipoDoc: tipoDocCliente,
+            nroDoc: nuevoUsuario.nroDoc,
+            telefono: nuevoUsuario.telefono,
+            correo: nuevoUsuario.correo,
+            estado: 'Activo',
+          });
+
+          await nuevoCliente.save();
+        }
         res.status(201).json(nuevoUsuario);
     } catch (error) {
         if (error.message.includes('Ya existe un administrador')) {
             return res.status(400).json({ error: error.message });
         }
         res.status(500).json({ mensaje: 'Error en el servidor', error });
+        console.error('Error en registerUsuario:', error);
     }
 };
 

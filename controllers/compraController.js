@@ -1,7 +1,7 @@
 const Compra = require("../models/compra");
 const DetalleCompra = require("../models/detallecompra");
 const Producto = require("../models/producto");
-const IngresoProducto = require("../models/ingresoProducto");
+const ingreso = require("../models/ingreso");
 const mongoose = require("mongoose");
 const ExcelJS = require('exceljs');
 
@@ -199,22 +199,22 @@ exports.actualizarCompra = async (req, res) => {
         cantidadTotal += detalleC.cantidad;
       }
     
-      // Crear un único registro en IngresoProducto
-      const ingresoProducto = new IngresoProducto({
+      // Crear un único registro en ingreso
+      const ingreso = new ingreso({
         tipoOperacion: "Compra Registrada",
         compraId: compra._id,
         cantidadTotal,
         fechaIngreso: new Date()
       });
     
-      await ingresoProducto.save();
+      await ingreso.save();
     } else {
       console.log("Nada");
     }
     
     await compra.save();
 
-    const ingresos = await IngresoProducto.find({ compraId: compra._id });
+    const ingresos = await ingreso.find({ compraId: compra._id });
 
     res.json({
       mensaje: "Compra actualizada correctamente",

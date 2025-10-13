@@ -15,10 +15,9 @@ const proveedores = require('./routes/proveedorRoute');
 const clientes = require('./routes/clienteRoute');
 const categorias = require('./routes/categoriaRoute');
 const marcas = require('./routes/marcaRoute');
-const ingresoProductos = require('./routes/ingresoProductoRoute');
-const salidaProductos = require('./routes/salidaRoute');
+const ingresos = require('./routes/ingresoRoute');
+const salidas = require('./routes/salidaRoute');
 const rutasComprasSugeridas = require('./routes/compraSugeridasRoute');
-const devolucion = require('./routes/devolucionRoute.js');
 const entregas = require('./routes/entregasRoute.js');
 
 // creamos servidor
@@ -37,6 +36,9 @@ app.use('/api/auth', require('./routes/usuarioRoute'));
 
 // Carrito
 app.use('/api/carrito', require('./routes/carritoRoute'));
+
+app.use('/api/salidas', salidas);
+
 
 // producto
 app.use('/api/createProduct', productos);
@@ -106,17 +108,9 @@ app.use('/api/updateMarca', marcas);
 app.use('/api/getMarca', marcas);
 app.use('/api/deleteMarca', marcas);
 
-// ingresoProducto
-app.use('/api/getIngresos', ingresoProductos);
-app.use('/api/getIngreso', ingresoProductos);
-
-// devolucion
-app.use('/api/getDevoluciones', devolucion);
-app.use('/api/getDevolucion', devolucion);
-
-// salidaProducto
-app.use('/api/getSalidas', salidaProductos);
-app.use('/api/getSalida', salidaProductos);
+// ingreso
+app.use('/api/getIngresos', ingresos);
+app.use('/api/getIngreso', ingresos);
 
 // compras sugeridas
 app.use('/api/comprasSugeridas', rutasComprasSugeridas);

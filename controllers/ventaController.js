@@ -1,13 +1,12 @@
 const Venta = require("../models/venta");
 const DetalleVenta = require("../models/detalleventa");
 const Producto = require("../models/producto");
-const Salida = require("../models/salidaProducto");
+const Salida = require("../models/salida");
 const mongoose = require("mongoose");
-const ingresoProducto = require("../models/ingresoProducto");
+const ingreso = require("../models/ingreso");
 const ExcelJS = require("exceljs");
 
 const sugerirCompraSiEsNecesario = require("../utils/sugerirCompra");
-const devolucionProducto = require("../models/devolucionProducto");
 
 exports.registrarVenta = async (req, res) => {
   try {
@@ -375,7 +374,7 @@ exports.actualizarVenta = async (req, res) => {
       }
 
       // Crear un solo ingreso con los datos de la venta (ya obtenida)
-      const ingreso = new ingresoProducto({
+      const ingreso = new ingreso({
         tipoOperacion: "Venta Anulada",
         ventaId: venta._id,
         cantidadTotal,

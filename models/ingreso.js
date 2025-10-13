@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const IngresoProductoSchema = mongoose.Schema({
+const ingresoSchema = mongoose.Schema({
   tipoOperacion: {
     type: String,
     enum: ['Compra Registrada', 'Venta Anulada', 'Devolución'],
@@ -14,4 +14,4 @@ const IngresoProductoSchema = mongoose.Schema({
   detalleC: [{ type: mongoose.Schema.Types.ObjectId, ref: 'DetalleCompra' }]
 });
 
-module.exports = mongoose.model('IngresoProducto', IngresoProductoSchema);
+module.exports = mongoose.model('ingreso', ingresoSchema);

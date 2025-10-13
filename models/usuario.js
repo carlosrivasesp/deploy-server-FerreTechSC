@@ -29,18 +29,4 @@ const usuarioSchema = new mongoose.Schema({
     }
 });
 
-usuarioSchema.post('save', async function(doc) {
-  if (doc.rol === 'cliente') {
-    const Cliente = mongoose.model('Cliente'); 
-    await Cliente.create({
-      nombre: doc.nombre,
-      tipoDoc: doc.tipoDoc === 'dni' ? 'DNI' : 'RUC',
-      nroDoc: doc.nroDoc,
-      telefono: doc.telefono,
-      correo: doc.correo,
-      estado: 'Activo'
-    });
-  }
-});
-
 module.exports = mongoose.model('Usuario', usuarioSchema);

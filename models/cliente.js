@@ -14,12 +14,3 @@ const clienteSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model('Cliente', clienteSchema)
-
-/*
-validate: {
-            validator: function (v) {
-                return /@(gmail\.com|hotmail\.com|outlook\.es)$/.test(v);
-            },
-            message: props => `${props.value} no es un correo válido. Solo se aceptan @gmail.com, @hotmail.com o @outlook.es.`
-        }
-*/

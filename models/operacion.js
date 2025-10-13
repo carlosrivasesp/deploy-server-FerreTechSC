@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+
 const operacionSchema = new mongoose.Schema({
     tipoOperacion: {
         type: Number,
@@ -34,7 +35,8 @@ const operacionSchema = new mongoose.Schema({
     fechaVenc: {
         type: Date,
         default: Date.now(),
-    }
+    },
+    salidas: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Salida' }],
 })
 
 const Operacion = mongoose.model('Operacion', operacionSchema);

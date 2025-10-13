@@ -1,9 +1,8 @@
-const IngresoProducto = require('../models/ingresoProducto');
-const Producto = require('../models/producto');
+const ingreso = require('../models/ingreso');
 
 exports.obtenerIngresos = async (req, res) => {
     try {
-        const ingresos = await IngresoProducto.find().populate('ventaId').populate('compraId');
+        const ingresos = await ingreso.find().populate('ventaId').populate('compraId');
         res.json(ingresos);
     } catch (error) {
         console.log(error);
@@ -13,7 +12,7 @@ exports.obtenerIngresos = async (req, res) => {
 
 exports.obtenerIngreso = async (req, res) => {
     try {
-        const ingreso = await IngresoProducto.findById(req.params.id).populate({
+        const ingreso = await ingreso.findById(req.params.id).populate({
             path: 'ventaId',
             populate: {
               path: 'detalles', // Esto es clave
