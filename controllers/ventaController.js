@@ -2,15 +2,12 @@ const Venta = require("../models/venta");
 const DetalleVenta = require("../models/detalleventa");
 const Producto = require("../models/producto");
 const Salida = require("../models/salidaProducto");
-const Lugar = require("../models/lugaresEntrega");
 const mongoose = require("mongoose");
 const ingresoProducto = require("../models/ingresoProducto");
 const ExcelJS = require("exceljs");
 
 const sugerirCompraSiEsNecesario = require("../utils/sugerirCompra");
 const devolucionProducto = require("../models/devolucionProducto");
-const Entrega = require("../models/entregas");
-const lugaresEntrega = require("../models/lugaresEntrega");
 
 exports.registrarVenta = async (req, res) => {
   try {
@@ -18,8 +15,7 @@ exports.registrarVenta = async (req, res) => {
       detalles: productos,
       tipoComprobante,
       metodoPago,
-      cliente,
-      servicioDelivery 
+      cliente
     } = req.body;
 
     // Validaciones básicas
@@ -91,8 +87,7 @@ exports.registrarVenta = async (req, res) => {
       detalles: [],
       igv: 0,
       total: 0,
-      cliente: new mongoose.Types.ObjectId(cliente),
-      servicioDelivery: servicioDelivery ?? false
+      cliente: new mongoose.Types.ObjectId(cliente)
     });
 
     // Calcular IGV y total
@@ -126,13 +121,6 @@ exports.registrarVenta = async (req, res) => {
 
     await nuevaVenta.save();
     res.json(nuevaVenta);
-
-    if (servicioDelivery) {
-      const entrega = new Entrega({
-        ventaId: nuevaVenta._id
-      });
-      await entrega.save();
-    }
 
   } catch (error) {
     console.error(error);

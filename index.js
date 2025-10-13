@@ -17,11 +17,9 @@ const categorias = require('./routes/categoriaRoute');
 const marcas = require('./routes/marcaRoute');
 const ingresoProductos = require('./routes/ingresoProductoRoute');
 const salidaProductos = require('./routes/salidaRoute');
-const lugaresEntrega = require('./routes/lugaresEntregaRoute');
 const rutasComprasSugeridas = require('./routes/compraSugeridasRoute');
 const devolucion = require('./routes/devolucionRoute.js');
 const entregas = require('./routes/entregasRoute.js');
-const pedido = require('./routes/pedidoRoute.js');
 
 // creamos servidor
 const app = express();
@@ -37,7 +35,7 @@ app.use(morgan('[:date] :method :url :status - :response-time ms'));
 // Usuario (auth)
 app.use('/api/auth', require('./routes/usuarioRoute'));
 
-// Carrito (NUEVO)
+// Carrito
 app.use('/api/carrito', require('./routes/carritoRoute'));
 
 // producto
@@ -120,13 +118,6 @@ app.use('/api/getDevolucion', devolucion);
 app.use('/api/getSalidas', salidaProductos);
 app.use('/api/getSalida', salidaProductos);
 
-// lugaresEntrega
-app.use('/api/registerLugar', lugaresEntrega);
-app.use('/api/getLugares', lugaresEntrega);
-app.use('/api/getLugar', lugaresEntrega);
-app.use('/api/updateLugar', lugaresEntrega);
-app.use('/api/exportarLugares', lugaresEntrega);
-
 // compras sugeridas
 app.use('/api/comprasSugeridas', rutasComprasSugeridas);
 
@@ -135,11 +126,6 @@ app.use('/api/getEntregas', entregas);
 app.use('/api/getEntrega', entregas);
 app.use('/api/updateEntrega', entregas);
 app.use('/api/exportarEntregas', entregas);
-
-// Pedido
-app.use('/api/registrarPedido', pedido);
-app.use('/api/getPedidos', pedido);
-app.use('/api/getPedidoCliente', pedido);
 
 // arranque
 app.listen(4000, () => {

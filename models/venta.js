@@ -21,10 +21,6 @@ const ventaSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Cliente',
       required: true
-    },
-    servicioDelivery: {
-        type: Boolean,
-        default: false
     }
 });
 
