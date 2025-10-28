@@ -37,6 +37,7 @@ const operacionSchema = new mongoose.Schema({
         default: Date.now(),
     },
     salidas: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Salida' }],
+    codigo: { type: String }
 })
 
 const Operacion = mongoose.model('Operacion', operacionSchema);

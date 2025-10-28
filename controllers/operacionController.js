@@ -152,6 +152,17 @@ exports.registrarPedido = async (req, res) => {
       const siguiente = parseInt(lastPedido.nroOperacion) + 1;
       nroOperacion = String(siguiente).padStart(3, "0");
     }
+    let codigoUnico;
+    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+    let existe = true;
+    while (existe) {
+      codigoUnico = Array.from({ length: 6 }, () =>
+        caracteres[Math.floor(Math.random() * caracteres.length)]
+      ).join('');
+
+      existe = await Operacion.findOne({ codigo: codigoUnico });
+    }
 
     const nuevoPedido = new Operacion({
       nroOperacion,
@@ -161,7 +172,8 @@ exports.registrarPedido = async (req, res) => {
       estado: "Pagado",
       detalles: [],
       total: 0,
-      cliente: new mongoose.Types.ObjectId(cliente)
+      cliente: new mongoose.Types.ObjectId(cliente),
+      codigo: codigoUnico
     });
 
     // Calcular IGV y total

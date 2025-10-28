@@ -154,6 +154,18 @@ exports.checkout = async (req, res) => {
       nroOperacion = lastPedido.nroOperacion + 1;
     }
 
+    let codigoUnico;
+        const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    
+        let existe = true;
+        while (existe) {
+          codigoUnico = Array.from({ length: 6 }, () =>
+            caracteres[Math.floor(Math.random() * caracteres.length)]
+          ).join('');
+    
+          existe = await Operacion.findOne({ codigo: codigoUnico });
+        }
+
     // Crear Pedido
     const nuevoPedido = new Operacion({
       tipoOperacion: 1,
@@ -163,7 +175,8 @@ exports.checkout = async (req, res) => {
       igv,
       total,
       estado: 'Pagado',
-      detalles: []
+      detalles: [],
+      codigo: codigoUnico,
     });
 
     await nuevoPedido.save();
