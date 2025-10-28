@@ -1,7 +1,7 @@
 const Cliente = require("../models/cliente");
 const Venta = require("../models/venta");
 const ExcelJS = require("exceljs");
-const Usuario = require('../models/usuario');
+const Usuario = require("../models/usuario");
 
 exports.getClientes = async (req, res) => {
   try {
@@ -12,6 +12,9 @@ exports.getClientes = async (req, res) => {
   }
 };
 
+// =========================================================================
+// FUNCIÓN ORIGINAL: Busca cliente por _id de MongoDB (manteniéndola intacta)
+// =========================================================================
 exports.getCliente = async (req, res) => {
   try {
     const cliente = await Cliente.findById(req.params.id);
@@ -22,6 +25,37 @@ exports.getCliente = async (req, res) => {
     res.json(cliente);
   } catch (error) {
     res.status(500).json({ mensaje: "Error en el servidor", error });
+  }
+};
+
+// =========================================================================
+// ✅ NUEVA FUNCIÓN: Busca cliente por nroDoc (DNI/RUC)
+// Esta es la función que debe usarse con el frontend de Angular.
+// =========================================================================
+exports.getClienteByNroDoc = async (req, res) => {
+  try {
+    // 1. Obtener el número de documento del parámetro de la URL
+    // Asumimos que la ruta de Express usará un nombre de parámetro (ej: /:nroDoc)
+    const nroDocBuscado = req.params.id;
+
+    // 2. Usar findOne para buscar por el campo 'nroDoc'
+    const cliente = await Cliente.findOne({ nroDoc: nroDocBuscado });
+
+    if (!cliente) {
+      // Devolvemos 200 con un cuerpo vacío, indicando al frontend que el cliente es nuevo
+      return res
+        .status(200)
+        .json({ mensaje: "Cliente no encontrado por nroDoc" });
+    }
+
+    // Cliente encontrado
+    res.json(cliente);
+  } catch (error) {
+    console.error("Error al buscar cliente por nroDoc:", error);
+    // Error de servidor (ej: conexión a BD)
+    res
+      .status(500)
+      .json({ mensaje: "Error en el servidor al buscar cliente", error });
   }
 };
 
@@ -47,6 +81,7 @@ exports.registerCliente = async (req, res) => {
 exports.editCliente = async (req, res) => {
   try {
     const { telefono, correo, estado } = req.body;
+    // La búsqueda inicial sigue siendo por _id para editar
     let cliente = await Cliente.findById(req.params.id);
 
     if (!cliente) {
@@ -54,7 +89,7 @@ exports.editCliente = async (req, res) => {
     }
     cliente.telefono = telefono;
     cliente.correo = correo;
-           cliente.estado = estado;
+    cliente.estado = estado;
 
     cliente = await Cliente.findOneAndUpdate({ _id: req.params.id }, cliente, {
       new: true,
@@ -67,28 +102,27 @@ exports.editCliente = async (req, res) => {
 };
 
 exports.deleteCliente = async (req, res) => {
-    try {
-        const cliente = await Cliente.findById(req.params.id);
-        
-        if (!cliente) {
-            return res.status(404).json({ msg: 'No existe el cliente' });
-        }
+  try {
+    const cliente = await Cliente.findById(req.params.id);
 
-        // Eliminar el cliente
-        await Cliente.findOneAndDelete({ _id: req.params.id });
-
-        // Verificar si hay un usuario vinculado antes de eliminarlo
-        const usuarioVinculado = await Usuario.findOne({ nroDoc: cliente.nroDoc });
-        
-        if (usuarioVinculado) {
-            await Usuario.deleteOne({ nroDoc: cliente.nroDoc });
-        }
-
-        res.json({ msg: 'Cliente eliminado con éxito' });
-        
-    } catch (error) {
-        res.status(500).json({ mensaje: 'Error en el servidor', error });
+    if (!cliente) {
+      return res.status(404).json({ msg: "No existe el cliente" });
     }
+
+    // Eliminar el cliente
+    await Cliente.findOneAndDelete({ _id: req.params.id });
+
+    // Verificar si hay un usuario vinculado antes de eliminarlo
+    const usuarioVinculado = await Usuario.findOne({ nroDoc: cliente.nroDoc });
+
+    if (usuarioVinculado) {
+      await Usuario.deleteOne({ nroDoc: cliente.nroDoc });
+    }
+
+    res.json({ msg: "Cliente eliminado con éxito" });
+  } catch (error) {
+    res.status(500).json({ mensaje: "Error en el servidor", error });
+  }
 };
 
 const exportarClientes = async (clientes, res, nombreArchivo) => {

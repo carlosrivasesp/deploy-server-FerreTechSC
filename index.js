@@ -1,27 +1,30 @@
-require('dotenv').config({ path: __dirname + '/.env' });
-console.log('JWT_SECRET:', process.env.JWT_SECRET ? '*** (presente)' : 'FALTANTE'); // Para verificación
-const express = require('express');
-const connectDB = require('./config/db');
-const cors = require('cors');
-const morgan = require('morgan');
+require("dotenv").config({ path: __dirname + "/.env" });
+console.log(
+  "JWT_SECRET:",
+  process.env.JWT_SECRET ? "*** (presente)" : "FALTANTE"
+); // Para verificación
+const express = require("express");
+const connectDB = require("./config/db");
+const cors = require("cors");
+const morgan = require("morgan");
 
 // routes
-const operacion = require('./routes/operacionRoute');
-const productos = require('./routes/productoRoute');
-const ventas = require('./routes/ventasRoute');
-const compras = require('./routes/comprasRoute');
-const cotizaciones = require('./routes/cotizacionRoute');
-const proveedores = require('./routes/proveedorRoute');
-const clientes = require('./routes/clienteRoute');
-const categorias = require('./routes/categoriaRoute');
-const marcas = require('./routes/marcaRoute');
-const ingresoProductos = require('./routes/ingresoProductoRoute');
-const salidaProductos = require('./routes/salidaRoute');
-const lugaresEntrega = require('./routes/lugaresEntregaRoute');
-const rutasComprasSugeridas = require('./routes/compraSugeridasRoute');
-const devolucion = require('./routes/devolucionRoute.js');
-const entregas = require('./routes/entregasRoute.js');
-const pedido = require('./routes/pedidoRoute.js');
+const operacion = require("./routes/operacionRoute");
+const productos = require("./routes/productoRoute");
+const ventas = require("./routes/ventasRoute");
+const compras = require("./routes/comprasRoute");
+const cotizaciones = require("./routes/cotizacionRoute");
+const proveedores = require("./routes/proveedorRoute");
+const clientes = require("./routes/clienteRoute"); // <-- Necesario
+const categorias = require("./routes/categoriaRoute");
+const marcas = require("./routes/marcaRoute");
+const ingresoProductos = require("./routes/ingresoProductoRoute");
+const salidaProductos = require("./routes/salidaRoute");
+const lugaresEntrega = require("./routes/lugaresEntregaRoute");
+const rutasComprasSugeridas = require("./routes/compraSugeridasRoute");
+const devolucion = require("./routes/devolucionRoute.js");
+const entregas = require("./routes/entregasRoute.js");
+const pedido = require("./routes/pedidoRoute.js");
 
 // creamos servidor
 const app = express();
@@ -32,116 +35,122 @@ connectDB();
 // middlewares base
 app.use(cors());
 app.use(express.json());
-app.use(morgan('[:date] :method :url :status - :response-time ms'));
+app.use(morgan("[:date] :method :url :status - :response-time ms"));
 
 // Usuario (auth)
-app.use('/api/auth', require('./routes/usuarioRoute'));
+app.use("/api/auth", require("./routes/usuarioRoute"));
 
 // Carrito (NUEVO)
-app.use('/api/carrito', require('./routes/carritoRoute'));
+app.use("/api/carrito", require("./routes/carritoRoute"));
 
 // producto
-app.use('/api/createProduct', productos);
-app.use('/api/getProducts', productos);
-app.use('/api/updateProduct', productos);
-app.use('/api/getProduct', productos);
-app.use('/api/deleteProduct', productos);
-app.use('/api/exportarProductos', productos);
-app.use('/api/obtenerProdProv', productos);
+app.use("/api/createProduct", productos);
+app.use("/api/getProducts", productos);
+app.use("/api/updateProduct", productos);
+app.use("/api/getProduct", productos);
+app.use("/api/deleteProduct", productos);
+app.use("/api/exportarProductos", productos);
+app.use("/api/obtenerProdProv", productos);
 
 // operacion
-app.use('/api/operacion', operacion);
+app.use("/api/operacion", operacion);
 
 // ventas
-app.use('/api/registrarVenta', ventas);
-app.use('/api/obtenerVentas', ventas);
-app.use('/api/obtenerDetallesVenta', ventas);
-app.use('/api/obtenerVenta', ventas);
-app.use('/api/actualizarVenta', ventas);
+app.use("/api/registrarVenta", ventas);
+app.use("/api/obtenerVentas", ventas);
+app.use("/api/obtenerDetallesVenta", ventas);
+app.use("/api/obtenerVenta", ventas);
+app.use("/api/actualizarVenta", ventas);
 
 // exportar comprobantes
-app.use('/api/ventas', ventas);
+app.use("/api/ventas", ventas);
 
 // compras
-app.use('/api/registrarCompra', compras);
-app.use('/api/obtenerCompras', compras);
-app.use('/api/obtenerDetallesCompra', compras);
-app.use('/api/obtenerCompra', compras);
-app.use('/api/actualizarCompra', compras);
-app.use('/api/exportarCompras', compras);
+app.use("/api/registrarCompra", compras);
+app.use("/api/obtenerCompras", compras);
+app.use("/api/obtenerDetallesCompra", compras);
+app.use("/api/obtenerCompra", compras);
+app.use("/api/actualizarCompra", compras);
+app.use("/api/exportarCompras", compras);
 
 // cotizaciones
-app.use('/api/registrarCotizacion', cotizaciones);
-app.use('/api/obtenerCotizaciones', cotizaciones);
-app.use('/api/obtenerDetallesCotizacion', cotizaciones);
-app.use('/api/cotizacion', cotizaciones);
-app.use('/api/obtenerCotizacion', cotizaciones);
-app.use('/api/actualizarCotizacion', cotizaciones);
-app.use('/api/exportarCotizacion', cotizaciones);
+app.use("/api/registrarCotizacion", cotizaciones);
+app.use("/api/obtenerCotizaciones", cotizaciones);
+app.use("/api/obtenerDetallesCotizacion", cotizaciones);
+app.use("/api/cotizacion", cotizaciones);
+app.use("/api/obtenerCotizacion", cotizaciones);
+app.use("/api/actualizarCotizacion", cotizaciones);
+app.use("/api/exportarCotizacion", cotizaciones);
 
 // proveedor
-app.use('/api/registerProveedor', proveedores);
-app.use('/api/getProveedores', proveedores);
-app.use('/api/updateProveedor', proveedores);
-app.use('/api/getProveedor', proveedores);
-app.use('/api/deleteProveedor', proveedores);
+app.use("/api/registerProveedor", proveedores);
+app.use("/api/getProveedores", proveedores);
+app.use("/api/updateProveedor", proveedores);
+app.use("/api/getProveedor", proveedores);
+app.use("/api/deleteProveedor", proveedores);
 
-// cliente
+/*
+ * --- RUTA DE CLIENTES ---
+ * COMENTADA la sección antigua con prefijos múltiples y reemplazada por una sola ruta.
+ *
 app.use('/api/registrarCliente', clientes);
 app.use('/api/getClientes', clientes);
 app.use('/api/updateCliente', clientes);
 app.use('/api/getCliente', clientes);
 app.use('/api/deleteCliente', clientes);
 app.use('/api/exportarClientes', clientes);
+*/
+// ✅ RUTA UNIFICADA PARA CLIENTES: Todas las rutas definidas en clienteRoute.js ahora se acceden vía /api/clientes
+app.use("/api/clientes", clientes);
 
 // categoria
-app.use('/api/registerCategoria', categorias);
-app.use('/api/getCategorias', categorias);
-app.use('/api/updateCategoria', categorias);
-app.use('/api/getCategoria', categorias);
-app.use('/api/deleteCategoria', categorias);
+app.use("/api/registerCategoria", categorias);
+app.use("/api/getCategorias", categorias);
+app.use("/api/updateCategoria", categorias);
+app.use("/api/getCategoria", categorias);
+app.use("/api/deleteCategoria", categorias);
 
 // marca
-app.use('/api/registerMarca', marcas);
-app.use('/api/getMarcas', marcas);
-app.use('/api/updateMarca', marcas);
-app.use('/api/getMarca', marcas);
-app.use('/api/deleteMarca', marcas);
+app.use("/api/registerMarca", marcas);
+app.use("/api/getMarcas", marcas);
+app.use("/api/updateMarca", marcas);
+app.use("/api/getMarca", marcas);
+app.use("/api/deleteMarca", marcas);
 
 // ingresoProducto
-app.use('/api/getIngresos', ingresoProductos);
-app.use('/api/getIngreso', ingresoProductos);
+app.use("/api/getIngresos", ingresoProductos);
+app.use("/api/getIngreso", ingresoProductos);
 
 // devolucion
-app.use('/api/getDevoluciones', devolucion);
-app.use('/api/getDevolucion', devolucion);
+app.use("/api/getDevoluciones", devolucion);
+app.use("/api/getDevolucion", devolucion);
 
 // salidaProducto
-app.use('/api/getSalidas', salidaProductos);
-app.use('/api/getSalida', salidaProductos);
+app.use("/api/getSalidas", salidaProductos);
+app.use("/api/getSalida", salidaProductos);
 
 // lugaresEntrega
-app.use('/api/registerLugar', lugaresEntrega);
-app.use('/api/getLugares', lugaresEntrega);
-app.use('/api/getLugar', lugaresEntrega);
-app.use('/api/updateLugar', lugaresEntrega);
-app.use('/api/exportarLugares', lugaresEntrega);
+app.use("/api/registerLugar", lugaresEntrega);
+app.use("/api/getLugares", lugaresEntrega);
+app.use("/api/getLugar", lugaresEntrega);
+app.use("/api/updateLugar", lugaresEntrega);
+app.use("/api/exportarLugares", lugaresEntrega);
 
 // compras sugeridas
-app.use('/api/comprasSugeridas', rutasComprasSugeridas);
+app.use("/api/comprasSugeridas", rutasComprasSugeridas);
 
 // Entregas
-app.use('/api/getEntregas', entregas);
-app.use('/api/getEntrega', entregas);
-app.use('/api/updateEntrega', entregas);
-app.use('/api/exportarEntregas', entregas);
+app.use("/api/getEntregas", entregas);
+app.use("/api/getEntrega", entregas);
+app.use("/api/updateEntrega", entregas);
+app.use("/api/exportarEntregas", entregas);
 
 // Pedido
-app.use('/api/registrarPedido', pedido);
-app.use('/api/getPedidos', pedido);
-app.use('/api/getPedidoCliente', pedido);
+app.use("/api/registrarPedido", pedido);
+app.use("/api/getPedidos", pedido);
+app.use("/api/getPedidoCliente", pedido);
 
 // arranque
 app.listen(4000, () => {
-    console.log('El puerto está corriendo perfectamente');
+  console.log("El puerto está corriendo perfectamente");
 });
