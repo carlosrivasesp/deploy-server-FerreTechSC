@@ -38,6 +38,7 @@ app.use('/api/auth', require('./routes/usuarioRoute'));
 app.use('/api/carrito', require('./routes/carritoRoute'));
 
 app.use('/api/salidas', salidas);
+app.use('/api/ingresos', ingresos);
 
 
 // producto
@@ -107,10 +108,6 @@ app.use('/api/getMarcas', marcas);
 app.use('/api/updateMarca', marcas);
 app.use('/api/getMarca', marcas);
 app.use('/api/deleteMarca', marcas);
-
-// ingreso
-app.use('/api/getIngresos', ingresos);
-app.use('/api/getIngreso', ingresos);
 
 // compras sugeridas
 app.use('/api/comprasSugeridas', rutasComprasSugeridas);

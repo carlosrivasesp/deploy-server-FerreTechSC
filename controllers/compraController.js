@@ -3,11 +3,16 @@ const DetalleCompra = require("../models/detallecompra");
 const Producto = require("../models/producto");
 const ingreso = require("../models/ingreso");
 const mongoose = require("mongoose");
-const ExcelJS = require('exceljs');
+const ExcelJS = require("exceljs");
 
 exports.registrarCompra = async (req, res) => {
   try {
-    const { detalleC: productos, tipoComprobante, metodoPago, proveedor } = req.body;
+    const {
+      detalles: productos,
+      tipoComprobante,
+      metodoPago,
+      proveedor,
+    } = req.body;
 
     if (
       ![
@@ -93,16 +98,16 @@ exports.registrarCompra = async (req, res) => {
       detallesCompra.push(detalle._id);
     }
 
-    nuevaCompra.detalleC = detallesCompra;
+    nuevaCompra.detalles = detallesCompra;
     nuevaCompra.igv = igvCompra;
     nuevaCompra.total = totalCompra;
     await nuevaCompra.save();
 
     const compraConProveedor = await Compra.findById(nuevaCompra._id)
       .populate("proveedor", "nombre tipoDoc nroDoc telefono correo")
-      .populate("detalleC");
+      .populate("detalles");
 
-    const detallesFormateados = compraConProveedor.detalleC.map((det) => ({
+    const detallesFormateados = compraConProveedor.detalles.map((det) => ({
       producto: {
         codInt: det.codInt,
         nombre: det.nombre,
@@ -138,8 +143,12 @@ exports.registrarCompra = async (req, res) => {
 exports.obtenerCompras = async (req, res) => {
   try {
     const compras = await Compra.find()
-      .populate("detalleC")
-      .populate("proveedor", "nombre tipoDoc nroDoc telefono correo");
+      .populate("detalles")
+      .populate("proveedor", "nombre tipoDoc nroDoc telefono correo")
+      .populate({
+        path: "detalles",
+        populate: { path: "producto", select: "nombre precio codInt" },
+      });
 
     res.json(compras);
   } catch (error) {
@@ -154,8 +163,12 @@ exports.obtenerCompras = async (req, res) => {
 exports.obtenerCompra = async (req, res) => {
   try {
     const compra = await Compra.findById(req.params.id)
-      .populate("detalleC")
-      .populate("proveedor", "nombre tipoDoc nroDoc telefono correo");
+      .populate("detalles")
+      .populate("proveedor", "nombre tipoDoc nroDoc telefono correo")
+      .populate({
+        path: "detalles",
+        populate: { path: "producto", select: "nombre precio codInt" },
+      });
 
     if (!compra) {
       return res.status(404).json({ mensaje: "No existe el comprobante" });
@@ -179,24 +192,24 @@ exports.actualizarCompra = async (req, res) => {
     const estadoAnterior = compra.estado;
     compra.estado = estado || compra.estado;
     compra.metodoPago = metodoPago || compra.metodoPago;
-
-    if (estado === "Registrado" && estadoAnterior === "Pendiente") {
+    /*
+    if (estado === "Aprobado" && estadoAnterior === "Pendiente") {
       let cantidadTotal = 0;
     
-      for (let detalleId of compra.detalleC) {
-        let detalleC = await DetalleCompra.findById(detalleId).populate("producto");
+      for (let detalleId of compra.detalles) {
+        let detalles = await DetalleCompra.findById(detalleId).populate("producto");
     
-        if (!detalleC || !detalleC.producto) {
+        if (!detalles || !detalles.producto) {
           return res.status(400).json({
             mensaje: "Detalle o producto no encontrado para la compra.",
           });
         }
     
-        let producto = detalleC.producto;
-        producto.stockActual += detalleC.cantidad;
+        let producto = detalles.producto;
+        producto.stockActual += detalles.cantidad;
         await producto.save();
     
-        cantidadTotal += detalleC.cantidad;
+        cantidadTotal += detalles.cantidad;
       }
     
       // Crear un único registro en ingreso
@@ -215,112 +228,120 @@ exports.actualizarCompra = async (req, res) => {
     await compra.save();
 
     const ingresos = await ingreso.find({ compraId: compra._id });
+*/
 
+    await compra.save();
     res.json({
       mensaje: "Compra actualizada correctamente",
       compra,
-      ingresos,
+      //ingresos,
     });
   } catch (error) {
     console.log(error);
     res.status(500).json({ mensaje: "Error al actualizar la compra", error });
   }
 };
-const exportarCompras = async (compras, res, nombreArchivo) => { // Cambiar parámetro a 'compras'
-    try {
-        if (compras.length === 0) {
-            return res.status(400).json({ message: 'No hay compras para exportar.' });
-        }
-
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Compras');
-
-        // Columnas corregidas (eliminar duplicados y ajustar a modelo real)
-        worksheet.columns = [
-            { header: 'Fecha Emision', key: 'fechaEmision', width: 15 },
-            { header: 'Tipo Comprobante', key: 'tipoComprobante', width: 25 },
-            { header: 'Nro Comprobante', key: 'nroComprobante', width: 15 },
-            { header: 'Serie', key: 'serie', width: 10 },
-            { header: 'Moneda', key: 'moneda', width: 10 },
-            { header: 'Metodo de Pago', key: 'metodoPago', width: 20 },
-            { header: 'Estado', key: 'estado', width: 15 },
-            { header: 'Total', key: 'total', width: 15 },
-            { header: 'Proveedor', key: 'proveedor', width: 30 },
-            { header: 'IGV', key: 'igv', width: 15 }
-        ];
-
-        compras.forEach(compra => {
-            const fila = {
-                fechaEmision: compra.fechaEmision.toLocaleDateString(),
-                tipoComprobante: compra.tipoComprobante,
-                nroComprobante: compra.nroComprobante,
-                serie: compra.serie,
-                moneda: compra.moneda,
-                metodoPago: compra.metodoPago,
-                estado: compra.estado,
-                total: compra.total,
-                proveedor: compra.proveedor.nombre, // Extraer solo el nombre
-                igv: compra.igv
-            };
-            worksheet.addRow(fila);
-        });
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}.xlsx"`);
-        res.send(buffer); // Usar send() en lugar de end()
-
-    } catch (error) {
-        console.error('Error al generar el archivo Excel:', error);
-        return res.status(500).json({ 
-            message: 'Hubo un error al generar el archivo',
-            error: error.message
-        });
+const exportarCompras = async (compras, res, nombreArchivo) => {
+  // Cambiar parámetro a 'compras'
+  try {
+    if (compras.length === 0) {
+      return res.status(400).json({ message: "No hay compras para exportar." });
     }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Compras");
+
+    // Columnas corregidas (eliminar duplicados y ajustar a modelo real)
+    worksheet.columns = [
+      { header: "Fecha Emision", key: "fechaEmision", width: 15 },
+      { header: "Tipo Comprobante", key: "tipoComprobante", width: 25 },
+      { header: "Nro Comprobante", key: "nroComprobante", width: 15 },
+      { header: "Serie", key: "serie", width: 10 },
+      { header: "Moneda", key: "moneda", width: 10 },
+      { header: "Metodo de Pago", key: "metodoPago", width: 20 },
+      { header: "Estado", key: "estado", width: 15 },
+      { header: "Total", key: "total", width: 15 },
+      { header: "Proveedor", key: "proveedor", width: 30 },
+      { header: "IGV", key: "igv", width: 15 },
+    ];
+
+    compras.forEach((compra) => {
+      const fila = {
+        fechaEmision: compra.fechaEmision.toLocaleDateString(),
+        tipoComprobante: compra.tipoComprobante,
+        nroComprobante: compra.nroComprobante,
+        serie: compra.serie,
+        moneda: compra.moneda,
+        metodoPago: compra.metodoPago,
+        estado: compra.estado,
+        total: compra.total,
+        proveedor: compra.proveedor.nombre, // Extraer solo el nombre
+        igv: compra.igv,
+      };
+      worksheet.addRow(fila);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${nombreArchivo}.xlsx"`
+    );
+    res.send(buffer); // Usar send() en lugar de end()
+  } catch (error) {
+    console.error("Error al generar el archivo Excel:", error);
+    return res.status(500).json({
+      message: "Hubo un error al generar el archivo",
+      error: error.message,
+    });
+  }
 };
 
 // Exportar todas las compras (Listado general)
 exports.exportListadoGeneral = async (req, res) => {
-    try {
-        const compras = await Compra.find()
-            .populate('proveedor', 'nombre'); // Asegurar población del nombre
-        await exportarCompras(compras, res, 'compras_listado_general');
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Error al exportar listado general');
-    }
+  try {
+    const compras = await Compra.find().populate("proveedor", "nombre"); // Asegurar población del nombre
+    await exportarCompras(compras, res, "compras_listado_general");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error al exportar listado general");
+  }
 };
 // Exportar facturas
 exports.exportFacturas = async (req, res) => {
-    try {
-        const compras = await Compra.find({ tipoComprobante: 'FACTURA DE COMPRA ELECTRONICA' })
-            .populate('proveedor', 'nombre');
-        await exportarCompras(compras, res, 'compras_facturas');
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Error al exportar facturas');
-    }
+  try {
+    const compras = await Compra.find({
+      tipoComprobante: "FACTURA DE COMPRA ELECTRONICA",
+    }).populate("proveedor", "nombre");
+    await exportarCompras(compras, res, "compras_facturas");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error al exportar facturas");
+  }
 };
 // Exportar boletas
 exports.exportBoletas = async (req, res) => {
-    try {
-        const compras = await Compra.find({ tipoComprobante: 'BOLETA DE COMPRA ELECTRONICA' })
-            .populate('proveedor', 'nombre');
-        await exportarCompras(compras, res, 'compras_boletas');
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Error al exportar boletas');
-    }
+  try {
+    const compras = await Compra.find({
+      tipoComprobante: "BOLETA DE COMPRA ELECTRONICA",
+    }).populate("proveedor", "nombre");
+    await exportarCompras(compras, res, "compras_boletas");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error al exportar boletas");
+  }
 };
 // Exportar por proveedor
 exports.exportByProveedor = async (req, res) => {
-    try {
-        const { idProveedor } = req.params;
-        const compras = await Compra.find()
-            .populate('proveedor', 'nombre');
-        await exportarCompras(compras, res, `compras_proveedor_`);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Error al exportar por proveedor');
-    }
+  try {
+    const { idProveedor } = req.params;
+    const compras = await Compra.find().populate("proveedor", "nombre");
+    await exportarCompras(compras, res, `compras_proveedor_`);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error al exportar por proveedor");
+  }
 };

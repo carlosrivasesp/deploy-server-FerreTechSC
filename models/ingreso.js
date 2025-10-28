@@ -1,17 +1,18 @@
 const mongoose = require('mongoose');
 
-const ingresoSchema = mongoose.Schema({
+const ingresoSchema = new mongoose.Schema({
   tipoOperacion: {
-    type: String,
-    enum: ['Compra Registrada', 'Venta Anulada', 'Devolución'],
-    required: true,
+      type: String,
+      enum: ['Orden de compra aprobada'],
+      required: true,
   },
   compraId: { type: mongoose.Schema.Types.ObjectId, ref: 'Compra' },
-  ventaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Venta' },
-  cantidadTotal: { type: Number, required: true },
   fechaIngreso: { type: Date, default: Date.now },
-  detalles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'DetalleVenta' }],
-  detalleC: [{ type: mongoose.Schema.Types.ObjectId, ref: 'DetalleCompra' }]
+  cantidadTotal: Number,
+  detalles: [{
+    detalleId: { type: mongoose.Schema.Types.ObjectId, ref: 'DetalleCompra' },
+    cantidadIngreso: Number
+  }]
 });
 
-module.exports = mongoose.model('ingreso', ingresoSchema);
+module.exports = mongoose.model('Ingreso', ingresoSchema);

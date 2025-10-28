@@ -10,12 +10,9 @@ const compraSchema = new mongoose.Schema({
     }, 
     nroComprobante: { type: String },  // Se generará automáticamente
     serie: { type: String, enum: ['F01','B01']}, // Se asignará automáticamente en el middleware
-    detalleC: [{ type: mongoose.Schema.Types.ObjectId, ref: 'DetalleCompra' }], 
-    moneda: { type: String, default: 'S/', enum: ['S/'] }, 
-    tipoCambio: { type: Number, default: 3.66 }, 
-    // tipoPago: { type: String, enum: ['Directo', 'Cuotas'], required: true },
+    detalles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'DetalleCompra' }], 
     metodoPago:{type:String,enum:['Transferencia', 'Efectivo', 'Tarjeta de credito', 'Tarjeta de debito', 'Yape', 'Plin'], required:true},
-    estado: { type: String, enum: ['Registrado','Pendiente','Anulado'], default:'Pendiente', required: true }, 
+    estado: { type: String, enum: ['Aprobado','Pendiente','Anulado'], default:'Pendiente', required: true }, 
     total: { type: Number, required: true },
     proveedor: {
       type: mongoose.Schema.Types.ObjectId,
@@ -25,7 +22,8 @@ const compraSchema = new mongoose.Schema({
     igv: {
         type: Number,
         required: true
-    }
+    },
+    ingresos: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Ingreso' }]
 });
 
 // Middleware para asignar automáticamente la serie y el nroComprobante

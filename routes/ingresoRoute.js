@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const ingresoController = require('../controllers/ingresoController');
 
+router.post('/', ingresoController.registrarIngreso);
 router.get('/', ingresoController.obtenerIngresos);
 router.get('/:id', ingresoController.obtenerIngreso);
 
