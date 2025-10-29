@@ -275,7 +275,7 @@ exports.registrarPedido = async (req, res) => {
 
 exports.registrarPedidoInvitado = async (req, res) => {
   try {
-    const { cliente, detalles: productos, servicioDelivery } = req.body;
+    const { cliente, detalles: productos, servicioDelivery, tipoComprobante, metodoPago } = req.body;
 
     // Validar datos mínimos
     if (!cliente || !cliente.nroDoc || !cliente.nombre) {
@@ -339,17 +339,30 @@ exports.registrarPedidoInvitado = async (req, res) => {
       nroOperacion = String(siguiente).padStart(3, "0");
     }
 
+    let codigoUnico;
+    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+    let existe = true;
+    while (existe) {
+      codigoUnico = Array.from({ length: 6 }, () =>
+        caracteres[Math.floor(Math.random() * caracteres.length)]
+      ).join('');
+
+      existe = await Operacion.findOne({ codigo: codigoUnico });
+    }
+
     // Crear la operación (pedido)
     const nuevoPedido = new Operacion({
       nroOperacion,
       tipoOperacion: 1,
-      estado: "Pendiente",
+      estado: "Pagado",
       servicioDelivery: servicioDelivery || false,
       fechaEmision: new Date(),
       fechaVenc: new Date(),
       cliente: clienteEncontrado._id,
       detalles: [],
       total: 0,
+      codigo: codigoUnico
     });
 
     // Calcular IGV y total
@@ -381,6 +394,49 @@ exports.registrarPedidoInvitado = async (req, res) => {
     nuevoPedido.igv = parseFloat(igv.toFixed(2));
     nuevoPedido.total = parseFloat(total.toFixed(2));
     await nuevoPedido.save();
+
+    const nuevaVenta = new Venta({
+      tipoComprobante: tipoComprobante,
+      metodoPago: metodoPago,
+      cliente: clienteEncontrado._id,
+      fechaEmision: Date.now(),
+      fechaVenc: new Date(),
+      igv: parseFloat(igv.toFixed(2)),
+      total: parseFloat(total.toFixed(2)),
+      estado: "Registrado",
+      detalles: [],
+    });
+
+    await nuevaVenta.save();
+
+    // Crear los detalles de la venta
+    let detallesVenta = [];
+    for (let { producto, cantidad } of productosProcesados) {
+      const subtotal = cantidad * producto.precio;
+      const detalleVenta = new DetalleVenta({
+        venta: nuevaVenta._id,
+        producto: producto._id,
+        nombre: producto.nombre,
+        cantidad,
+        precio: producto.precio,
+        subtotal,
+      });
+
+      await detalleVenta.save();
+      detallesVenta.push(detalleVenta._id);
+    }
+
+    nuevaVenta.detalles = detallesVenta;
+    await nuevaVenta.save();
+
+    if (servicioDelivery) {
+      const entrega = new Entrega({
+        pedidoId: nuevoPedido._id, // 👈 relaciona con el pedido
+        estado: "Pendiente", // puedes personalizar este estado
+        fechaRegistro: new Date(),
+      });
+      await entrega.save();
+    }
 
     return res.status(201).json({
       mensaje: "Pedido registrado correctamente (modo invitado)",

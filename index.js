@@ -90,18 +90,6 @@ app.use("/api/updateProveedor", proveedores);
 app.use("/api/getProveedor", proveedores);
 app.use("/api/deleteProveedor", proveedores);
 
-/*
- * --- RUTA DE CLIENTES ---
- * COMENTADA la sección antigua con prefijos múltiples y reemplazada por una sola ruta.
- *
-app.use('/api/registrarCliente', clientes);
-app.use('/api/getClientes', clientes);
-app.use('/api/updateCliente', clientes);
-app.use('/api/getCliente', clientes);
-app.use('/api/deleteCliente', clientes);
-app.use('/api/exportarClientes', clientes);
-*/
-// ✅ RUTA UNIFICADA PARA CLIENTES: Todas las rutas definidas en clienteRoute.js ahora se acceden vía /api/clientes
 app.use("/api/clientes", clientes);
 
 // categoria

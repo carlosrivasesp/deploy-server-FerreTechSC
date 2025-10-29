@@ -13,7 +13,6 @@ const ventaSchema = new mongoose.Schema({
     detalles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'DetalleVenta' }], 
     moneda: { type: String, default: 'S/', enum: ['S/'] }, 
     metodoPago:{type:String,enum:['Transferencia', 'Efectivo', 'Tarjeta de credito', 'Tarjeta de debito', 'Yape', 'Plin'], required:true},
-    lugar: { type: mongoose.Schema.Types.ObjectId, ref: 'LugaresEntrega'},
     estado: { type: String, enum: ['Registrado','Pendiente','Anulado','Devolución'], default:'Pendiente', required: true }, 
     igv: { type: Number, required: true },
     total: { type: Number, required: true },
