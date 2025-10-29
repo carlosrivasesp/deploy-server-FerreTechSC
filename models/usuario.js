@@ -2,10 +2,9 @@ const mongoose = require('mongoose');
 
 const usuarioSchema = new mongoose.Schema({
     nombre: { type: String, required: true, trim: true },
-   //apellido: { type: String, required: true, trim: true },
         tipoDoc: {
         type: String,
-        enum: ['dni', 'ruc'],
+        enum: ['DNI', 'RUC'],
         required: true
     },
     nroDoc: { type: String, required: true, unique: true, trim: true },
