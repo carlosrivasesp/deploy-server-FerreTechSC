@@ -10,7 +10,7 @@ const morgan = require("morgan");
 
 const trackingRoutes = require('./routes/trackingRoute');
 
-// routes
+// routes 
 const operacion = require('./routes/operacionRoute');
 const productos = require('./routes/productoRoute');
 const ventas = require('./routes/ventasRoute');
@@ -30,8 +30,6 @@ const app = express();
 
 // conectamos a la bd
 connectDB();
-
-app.use('/api/tracking', trackingRoutes);
 
 // middlewares base
 app.use(cors());
@@ -118,6 +116,8 @@ app.use('/api/getEntregas', entregas);
 app.use('/api/getEntrega', entregas);
 app.use('/api/updateEntrega', entregas);
 app.use('/api/exportarEntregas', entregas);
+
+app.use('/api/tracking', trackingRoutes);
 
 // arranque
 app.listen(4000, () => {
