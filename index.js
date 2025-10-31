@@ -8,6 +8,8 @@ const connectDB = require("./config/db");
 const cors = require("cors");
 const morgan = require("morgan");
 
+const trackingRoutes = require('./routes/trackingRoute');
+
 // routes
 const operacion = require('./routes/operacionRoute');
 const productos = require('./routes/productoRoute');
@@ -28,6 +30,8 @@ const app = express();
 
 // conectamos a la bd
 connectDB();
+
+app.use('/api/tracking', trackingRoutes);
 
 // middlewares base
 app.use(cors());
