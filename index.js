@@ -22,6 +22,7 @@ const ingresos = require('./routes/ingresoRoute');
 const salidas = require('./routes/salidaRoute');
 const rutasComprasSugeridas = require('./routes/compraSugeridasRoute');
 const entregas = require('./routes/entregasRoute.js');
+const mercadoPago = require('./routes/mercadoPagoRoute');
 
 // creamos servidor
 const app = express();
@@ -114,6 +115,9 @@ app.use('/api/getEntregas', entregas);
 app.use('/api/getEntrega', entregas);
 app.use('/api/updateEntrega', entregas);
 app.use('/api/exportarEntregas', entregas);
+
+// Mercado Pago
+app.use('/api/mercado-pago', mercadoPago);
 
 // arranque
 app.listen(4000, () => {
