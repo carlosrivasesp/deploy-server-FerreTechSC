@@ -12,14 +12,22 @@ exports.getEntregas = async (req, res) => {
   } catch (error) {
     res.status(500).json({ mensaje: "Error al obtener las entregas", error });
   }
+  
 };
+
 
 exports.getEntrega = async (req, res) => {
   try {
-    let entrega = await Entrega.findById(req.params.id).populate({
-      path: "operacionId",
-      populate: [{ path: "detalles" }],
-    });
+    let entrega = await Entrega.findById(req.params.id)
+.populate({
+  path: "operacionId",
+  populate: [
+    { path: "detalles" },
+    { path: "cliente", model: "Cliente" } // 🔥 forzar populate cliente
+  ],
+});
+
+
 
     if (!entrega) {
       return res.status(400).json({ mensaje: "Entrega no existe" });

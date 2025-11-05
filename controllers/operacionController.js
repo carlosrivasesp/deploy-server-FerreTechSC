@@ -160,18 +160,7 @@ exports.registrarPedido = async (req, res) => {
       const siguiente = parseInt(lastPedido.nroOperacion) + 1;
       nroOperacion = String(siguiente).padStart(3, "0");
     }
-    let codigoUnico;
-    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
-    let existe = true;
-    while (existe) {
-      codigoUnico = Array.from({ length: 6 }, () =>
-        caracteres[Math.floor(Math.random() * caracteres.length)]
-      ).join('');
-
-      existe = await Operacion.findOne({ codigo: codigoUnico });
-    }
-
+    
     const nuevoPedido = new Operacion({
       nroOperacion,
       fechaEmision: Date.now(),
@@ -248,15 +237,44 @@ exports.registrarPedido = async (req, res) => {
 
     nuevaVenta.detalles = detallesVenta;
     await nuevaVenta.save();
+// ✅ Generar ID único entrega
+  let idEntrega;
+  const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
-    if (servicioDelivery) {
-      const entrega = new Entrega({
-        pedidoId: nuevoPedido._id, // 👈 relaciona con el pedido
-        estado: "Pendiente", // puedes personalizar este estado
-        fechaRegistro: new Date(),
-      });
-      await entrega.save();
-    }
+  let existe = true;
+  while (existe) {
+    idEntrega = Array.from({ length: 6 }, () =>
+      caracteres[Math.floor(Math.random() * caracteres.length)]
+    ).join('');
+
+    existe = await Entrega.findOne({ idEntrega });
+  }
+
+  if (servicioDelivery) {
+
+  // ✅ Generar ID único entrega
+  let idEntrega;
+  const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+  let existe = true;
+  while (existe) {
+    idEntrega = Array.from({ length: 6 }, () =>
+      caracteres[Math.floor(Math.random() * caracteres.length)]
+    ).join('');
+
+    existe = await Entrega.findOne({ codigo:IdEntrega });
+  }
+
+  // ✅ Crear entrega con ese ID
+  const entrega = new Entrega({
+    operacionId: nuevoPedido._id,
+    estado: "Pendiente",
+    fechaRegistro: new Date(),
+    codigo:idEntrega
+  });
+
+  await entrega.save();
+}
 
      res.json({
       mensaje: "Pedido y venta registrados correctamente",
@@ -430,13 +448,31 @@ exports.registrarPedidoInvitado = async (req, res) => {
     await nuevaVenta.save();
 
     if (servicioDelivery) {
-      const entrega = new Entrega({
-        pedidoId: nuevoPedido._id, // 👈 relaciona con el pedido
-        estado: "Pendiente", // puedes personalizar este estado
-        fechaRegistro: new Date(),
-      });
-      await entrega.save();
-    }
+
+  // ✅ Generar ID único entrega
+  let idEntrega;
+  const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+  let existe = true;
+  while (existe) {
+    idEntrega = Array.from({ length: 6 }, () =>
+      caracteres[Math.floor(Math.random() * caracteres.length)]
+    ).join('');
+
+    existe = await Entrega.findOne({ codigo:idEntrega });
+  }
+
+  // ✅ Crear entrega con ese ID
+  const entrega = new Entrega({
+    operacionId: nuevoPedido._id,
+    estado: "Pendiente",
+    fechaRegistro: new Date(),
+    codigo:idEntrega
+  });
+
+  await entrega.save();
+}
+
 
     return res.status(201).json({
       mensaje: "Pedido registrado correctamente (modo invitado)",

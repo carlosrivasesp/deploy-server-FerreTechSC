@@ -9,7 +9,7 @@ router.get('/entregasProgramadas',entregasController.entregasProgramadas);
 
 router.get('/',entregasController.getEntregas);
 router.get('/:id',entregasController.getEntrega);
-router.put('/:id',entregasController.updateEntrega)
+router.put('/:id',entregasController.updateEntrega);
 
 
 

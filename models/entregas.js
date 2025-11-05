@@ -18,6 +18,13 @@ const entregasSchema = new mongoose.Schema({
   },
   fechaEntrega: { type: Date, default: Date.now },
   costo: { type: Number, default: 0 },
+  codigo: {
+    type: String,
+    unique: true,
+    required: true
+  },
+
+
 });
 
 module.exports = mongoose.model("Entrega", entregasSchema);
