@@ -251,8 +251,8 @@ exports.registrarPedido = async (req, res) => {
 
     if (servicioDelivery) {
       const entrega = new Entrega({
-        operacionId: nuevoPedido._id, // 👈 relaciona con el pedido
-        estado: "Pendiente", // puedes personalizar este estado
+        operacionId: nuevoPedido._id,
+        estado: "Pendiente",
         fechaRegistro: new Date(),
       });
       await entrega.save();
