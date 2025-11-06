@@ -24,6 +24,7 @@ const ingresos = require('./routes/ingresoRoute');
 const salidas = require('./routes/salidaRoute');
 const rutasComprasSugeridas = require('./routes/compraSugeridasRoute');
 const entregas = require('./routes/entregasRoute.js');
+const reniecRoutes = require('./routes/servicioE.js')
 
 // creamos servidor
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/carrito', require('./routes/carritoRoute'));
 app.use('/api/salidas', salidas);
 app.use('/api/ingresos', ingresos);
 
+app.use("/api/reniec", reniecRoutes);
 
 // producto
 app.use("/api/createProduct", productos);
