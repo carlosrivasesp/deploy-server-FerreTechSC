@@ -1,11 +1,5 @@
 const Operacion = require('../models/operacion');
 require('../models/cliente');
-
-/**
- * @desc   Buscar el estado de una operación por su código de tracking
- * @route  GET /api/tracking/:codigo
- * @access Public
- */
 const getTrackingByCode = async (req, res) => {
     try {
         const { codigo } = req.params;
