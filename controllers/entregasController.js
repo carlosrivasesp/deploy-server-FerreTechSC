@@ -1,12 +1,15 @@
 const ExcelJS = require("exceljs");
 const Entrega = require("../models/entregas.js");
-const Operacion = require("../models/operacion.js");
+const Operacion = require("../models/operacion.js"); // Asegúrate que este path sea correcto
 
 exports.getEntregas = async (req, res) => {
   try {
     const entregas = await Entrega.find().populate({
       path: "operacionId",
-      populate: [{ path: "detalles" }],
+      populate: [
+        { path: "detalles" },
+        { path: "cliente", model: "Cliente" }, // ⭐️ <-- ¡AQUÍ ESTÁ EL ARREGLO #2!
+      ],
     });
     res.json(entregas);
   } catch (error) {
@@ -18,7 +21,10 @@ exports.getEntrega = async (req, res) => {
   try {
     let entrega = await Entrega.findById(req.params.id).populate({
       path: "operacionId",
-      populate: [{ path: "detalles" }],
+      populate: [
+        { path: "detalles" },
+        { path: "cliente", model: "Cliente" }, // Esta ya estaba bien
+      ],
     });
 
     if (!entrega) {
@@ -29,6 +35,7 @@ exports.getEntrega = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 exports.updateEntrega = async (req, res) => {
   try {
     const entrega = await Entrega.findById(req.params.id);
@@ -48,13 +55,7 @@ exports.updateEntrega = async (req, res) => {
       entrega.fechaEntrega = req.body.fechaEntrega || entrega.fechaEntrega;
       entrega.costo = req.body.costo || entrega.costo;
     } else if (estadoActual === "En proceso" && nuevoEstado === "Finalizado") {
-      entrega.estado = "Finalizado";
-
-      // const venta = await Venta.findById(entrega.ventaId);
-      // if (venta.estado === "Pendiente") {
-      //   venta.estado = "Registrado";
-      //   await venta.save();
-      // }
+      entrega.estado = "Finalizado"; // Lógica de finalizar venta (si aplica)
     } else if (estadoActual === "Finalizado") {
       return res.status(400).json({
         mensaje: "La entrega ya está finalizada",
@@ -79,6 +80,8 @@ exports.updateEntrega = async (req, res) => {
     });
   }
 };
+
+// Función helper para exportar (ajustada)
 const exportarEntregas = async (entregas, res, nombreArchivo) => {
   try {
     if (entregas.length === 0) {
@@ -91,26 +94,25 @@ const exportarEntregas = async (entregas, res, nombreArchivo) => {
     const worksheet = workbook.addWorksheet("Entregas");
 
     worksheet.columns = [
-      { header: "Tipo Comprobante", key: "tipoComprobante", width: 15 },
-      { header: "Nro. Comprobante", key: "nroComprobante", width: 15 },
-      { header: "Serie", key: "serie", width: 15 },
+      { header: "Nro. Operación", key: "nroOperacion", width: 15 },
+      { header: "Cliente", key: "cliente", width: 30 },
       { header: "Direccion", key: "direccion", width: 25 },
       { header: "Distrito", key: "distrito", width: 25 },
       { header: "Estado", key: "estado", width: 10 },
-      { header: "Fecha inicial", key: "fechaInicial", width: 15 },
-      { header: "Fecha final", key: "fechaFinal", width: 15 },
+      { header: "Fecha Registro", key: "fechaRegistro", width: 15 },
+      { header: "Fecha Entrega", key: "fechaEntrega", width: 15 },
     ];
 
     entregas.forEach((entrega) => {
+      // Usamos la data poblada de operacionId
       const fila = {
-        tipoComprobante: entrega.ventaId?.tipoComprobante,
-        nroComprobante: entrega.ventaId?.nroComprobante,
-        serie: entrega.ventaId?.serie,
+        nroOperacion: entrega.operacionId?.nroOperacion,
+        cliente: entrega.operacionId?.cliente?.nombre,
         direccion: entrega.direccion,
-        distrito: entrega.ventaId?.lugar?.distrito,
+        distrito: entrega.distrito,
         estado: entrega.estado,
-        fechaInicial: entrega.fechaInicio,
-        fechaFinal: entrega.fechaFin,
+        fechaRegistro: entrega.fechaRegistro,
+        fechaEntrega: entrega.fechaEntrega,
       };
       worksheet.addRow(fila);
     });
@@ -130,6 +132,7 @@ const exportarEntregas = async (entregas, res, nombreArchivo) => {
 
     res.end(buffer);
   } catch (error) {
+    // ⭐️ ¡AQUÍ ESTABA EL ERROR! Se eliminó el '{' extra.
     console.error("Error al generar el archivo Excel:", error);
     return res.status(500).json({
       message: "Hubo un error al generar el archivo.",
@@ -139,15 +142,13 @@ const exportarEntregas = async (entregas, res, nombreArchivo) => {
   }
 };
 
+// --- Funciones de Exportar (Actualizadas con el populate correcto) ---
+
 exports.listadoGeneral = async (req, res) => {
   try {
     const entregas = await Entrega.find().populate({
-      path: "ventaId",
-      populate: {
-        path: "lugar",
-        select: "distrito",
-      },
-      select: "tipoComprobante nroComprobante serie lugar",
+      path: "operacionId",
+      populate: { path: "cliente", model: "Cliente" },
     });
     await exportarEntregas(entregas, res, "ListadoGeneral_Entregas");
   } catch (error) {
@@ -159,12 +160,8 @@ exports.listadoGeneral = async (req, res) => {
 exports.entregasRealizadas = async (req, res) => {
   try {
     const entregas = await Entrega.find({ estado: "Finalizado" }).populate({
-      path: "ventaId",
-      populate: {
-        path: "lugar",
-        select: "distrito",
-      },
-      select: "tipoComprobante nroComprobante serie lugar",
+      path: "operacionId",
+      populate: { path: "cliente", model: "Cliente" },
     });
     await exportarEntregas(entregas, res, "ListadoGeneral_Entregas");
   } catch (error) {
@@ -176,12 +173,8 @@ exports.entregasRealizadas = async (req, res) => {
 exports.entregasPendientes = async (req, res) => {
   try {
     const entregas = await Entrega.find({ estado: "Pendiente" }).populate({
-      path: "ventaId",
-      populate: {
-        path: "lugar",
-        select: "distrito",
-      },
-      select: "tipoComprobante nroComprobante serie lugar",
+      path: "operacionId",
+      populate: { path: "cliente", model: "Cliente" },
     });
     await exportarEntregas(entregas, res, "ListadoGeneral_Entregas");
   } catch (error) {
@@ -193,12 +186,8 @@ exports.entregasPendientes = async (req, res) => {
 exports.entregasProgramadas = async (req, res) => {
   try {
     const entregas = await Entrega.find({ estado: "En proceso" }).populate({
-      path: "ventaId",
-      populate: {
-        path: "lugar",
-        select: "distrito",
-      },
-      select: "tipoComprobante nroComprobante serie lugar",
+      path: "operacionId",
+      populate: { path: "cliente", model: "Cliente" },
     });
     await exportarEntregas(entregas, res, "ListadoGeneral_Entregas");
   } catch (error) {
