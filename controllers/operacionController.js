@@ -513,7 +513,6 @@ exports.obtenerOperaciones = async (req, res) => {
   }
 };
 
-// --- (La función 'obtenerOperacion' se mantiene igual) ---
 exports.obtenerOperacion = async (req, res) => {
   try {
     const operacion = await Operacion.findById(req.params.id)
@@ -536,9 +535,6 @@ exports.obtenerOperacion = async (req, res) => {
   }
 };
 
-// ==========================================================
-// ⭐️ INICIO DE LA FUNCIÓN CORREGIDA (ARREGLO #2) ⭐️
-// ==========================================================
 exports.actualizarEstado = async (req, res) => {
   try {
     const { nuevoEstado } = req.body;
@@ -554,7 +550,7 @@ exports.actualizarEstado = async (req, res) => {
         if (
           ![
             "Pagado",
-            "En preparación",
+            "En preparacion",
             "Enviado",
             "Entregado",
             "Cancelado",
@@ -566,7 +562,7 @@ exports.actualizarEstado = async (req, res) => {
         }
 
         if (
-          ["En preparación", "Enviado", "Entregado"].includes(
+          ["En preparacion", "Enviado", "Entregado"].includes(
             operacion.estado
           ) &&
           nuevoEstado === "Cancelado"
@@ -578,21 +574,20 @@ exports.actualizarEstado = async (req, res) => {
         } // Guardar el estado de la Operacion
 
         operacion.estado = nuevoEstado;
-        await operacion.save(); // ⭐️ INICIO DE LA SINCRONIZACIÓN CON ENTREGA ⭐️ // Si la operación tiene delivery, buscamos la entrega asociada
+        await operacion.save(); 
 
         if (operacion.servicioDelivery) {
           const entrega = await Entrega.findOne({ operacionId: operacion._id });
           if (entrega) {
-            // Mapear el estado de Operacion al estado de Entrega
             let nuevoEstadoEntrega = entrega.estado;
 
             switch (nuevoEstado) {
-              case "Pagado": // Si la entrega aún no se ha movido, se mantiene Pendiente
+              case "Pagado":
                 if (entrega.estado === "Pendiente") {
                   nuevoEstadoEntrega = "Pendiente";
                 }
                 break;
-              case "En preparación":
+              case "En preparacion":
                 nuevoEstadoEntrega = "En proceso";
                 break;
               case "Enviado":
@@ -606,13 +601,12 @@ exports.actualizarEstado = async (req, res) => {
                 break;
             }
 
-            // Solo guardar si el estado es válido y ha cambiado
             if (entrega.estado !== nuevoEstadoEntrega) {
               entrega.estado = nuevoEstadoEntrega;
               await entrega.save();
             }
           }
-        } // ⭐️ FIN DE LA SINCRONIZACIÓN ⭐️
+        }
         return res.json({
           message: "Estado del pedido y entrega actualizados",
           operacion,
@@ -631,7 +625,7 @@ exports.actualizarEstado = async (req, res) => {
               message:
                 "No hay productos en la cotización para generar la venta",
             });
-          } // (Falta lógica de crear Venta a partir de Cotización, pero no es parte del bug actual)
+          }
           operacion.estado = "Aceptada";
           await operacion.save();
 

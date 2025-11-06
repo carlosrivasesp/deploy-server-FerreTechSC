@@ -29,8 +29,8 @@ const operacionSchema = new mongoose.Schema({
     },
     estado: {
         type: String,
-        enum: ['Recibido', 'En Preparacion', 'Enviado', 'Entregado'],
-        default: 'Recibido'
+        enum: ['Pagado', 'En preparacion', 'Enviado', 'Entregado'],
+        default: 'Pagado'
     },
     fechaEmision: {
         type: Date,
