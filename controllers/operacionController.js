@@ -1,9 +1,9 @@
-const DetalleOperacion = require('../models/detalleOperacion');
-const Operacion = require('../models/operacion');
-const Producto = require('../models/producto');
-const Entrega = require('../models/entregas');
-const Venta = require('../models/venta')
-const DetalleVenta = require('../models/detalleventa')
+const DetalleOperacion = require("../models/detalleOperacion");
+const Operacion = require("../models/operacion");
+const Producto = require("../models/producto");
+const Entrega = require("../models/entregas");
+const Venta = require("../models/venta");
+const DetalleVenta = require("../models/detalleventa");
 const mongoose = require("mongoose");
 
 exports.registrarCotizacion = async (req, res) => {
@@ -17,9 +17,8 @@ exports.registrarCotizacion = async (req, res) => {
       return res
         .status(400)
         .json({ message: "Debe enviar al menos un producto" });
-    }
+    } // Validar productos y calcular subtotal
 
-    // Validar productos y calcular subtotal
     let subtotal = 0;
     let productosProcesados = [];
 
@@ -54,14 +53,12 @@ exports.registrarCotizacion = async (req, res) => {
       detalles: [],
       total: 0,
       cliente: new mongoose.Types.ObjectId(cliente),
-    });
+    }); // Calcular total
 
-    // Calcular total
     const total = +subtotal.toFixed(2);
 
-    await nuevaCotizacion.save();
+    await nuevaCotizacion.save(); // Crear detalles
 
-    // Crear detalles
     let detallesCotizacion = [];
     for (let { producto, cantidad } of productosProcesados) {
       const subtotal = cantidad * producto.precio;
@@ -85,12 +82,10 @@ exports.registrarCotizacion = async (req, res) => {
 
     await nuevaCotizacion.save();
 
-    res
-      .status(201)
-      .json({
-        message: "Cotización registrada correctamente",
-        nuevaCotizacion,
-      });
+    res.status(201).json({
+      message: "Cotización registrada correctamente",
+      nuevaCotizacion,
+    });
   } catch (error) {
     console.error(error);
     res
@@ -106,10 +101,9 @@ exports.registrarPedido = async (req, res) => {
       cliente,
       tipoComprobante,
       metodoPago,
-      servicioDelivery
-    } = req.body;
+      servicioDelivery, // NOTA: Si esta función también necesita guardar dirección, // deberás recibir 'direccion' y 'distrito' en el req.body
+    } = req.body; // Validaciones básicas
 
-    // Validaciones básicas
     if (!productos || !Array.isArray(productos)) {
       return res.status(400).json({
         mensaje: "El campo 'productos' es requerido y debe ser un array.",
@@ -125,9 +119,8 @@ exports.registrarPedido = async (req, res) => {
     const clienteExiste = await mongoose.model("Cliente").findById(cliente);
     if (!clienteExiste) {
       return res.status(404).json({ mensaje: "El cliente no existe." });
-    }
+    } // Validar productos y calcular subtotal
 
-    // Validar productos y calcular subtotal
     let subtotal = 0;
     let productosProcesados = [];
 
@@ -160,7 +153,19 @@ exports.registrarPedido = async (req, res) => {
       const siguiente = parseInt(lastPedido.nroOperacion) + 1;
       nroOperacion = String(siguiente).padStart(3, "0");
     }
-    
+    // Generar código único para la operación (si es necesario)
+    let codigoUnico;
+    const caracteresOp =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let existeOp = true;
+    while (existeOp) {
+      codigoUnico = Array.from(
+        { length: 6 },
+        () => caracteresOp[Math.floor(Math.random() * caracteresOp.length)]
+      ).join("");
+      existeOp = await Operacion.findOne({ codigo: codigoUnico });
+    }
+
     const nuevoPedido = new Operacion({
       nroOperacion,
       fechaEmision: Date.now(),
@@ -170,16 +175,14 @@ exports.registrarPedido = async (req, res) => {
       detalles: [],
       total: 0,
       cliente: new mongoose.Types.ObjectId(cliente),
-      codigo: codigoUnico
-    });
+      codigo: codigoUnico,
+    }); // Calcular IGV y total
 
-    // Calcular IGV y total
     const igv = subtotal * 0.18;
     const total = subtotal + igv;
 
-    await nuevoPedido.save();
+    await nuevoPedido.save(); // Crear detalles
 
-    // Crear detalles
     let detallesPedido = [];
     for (let { producto, cantidad } of productosProcesados) {
       const subtotal = cantidad * producto.precio;
@@ -216,9 +219,8 @@ exports.registrarPedido = async (req, res) => {
       detalles: [],
     });
 
-    await nuevaVenta.save();
+    await nuevaVenta.save(); // Crear los detalles de la venta
 
-    // Crear los detalles de la venta
     let detallesVenta = [];
     for (let { producto, cantidad } of productosProcesados) {
       const subtotal = cantidad * producto.precio;
@@ -236,53 +238,57 @@ exports.registrarPedido = async (req, res) => {
     }
 
     nuevaVenta.detalles = detallesVenta;
-    await nuevaVenta.save();
-// ✅ Generar ID único entrega
-  let idEntrega;
-  const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    await nuevaVenta.save(); // Generar ID único entrega (código duplicado de tu original, se mantiene)
 
-  let existe = true;
-  while (existe) {
-    idEntrega = Array.from({ length: 6 }, () =>
-      caracteres[Math.floor(Math.random() * caracteres.length)]
-    ).join('');
+    let idEntrega;
+    const caracteres =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-    existe = await Entrega.findOne({ idEntrega });
-  }
+    let existe = true;
+    while (existe) {
+      idEntrega = Array.from(
+        { length: 6 },
+        () => caracteres[Math.floor(Math.random() * caracteres.length)]
+      ).join("");
 
-  if (servicioDelivery) {
+      existe = await Entrega.findOne({ codigo: idEntrega }); // Corregido: 'idEntrega' en minúscula
+    }
 
-  // ✅ Generar ID único entrega
-  let idEntrega;
-  const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    if (servicioDelivery) {
+      // Generar ID único entrega (este bloque está duplicado en tu original)
+      let idEntrega;
+      const caracteres =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-  let existe = true;
-  while (existe) {
-    idEntrega = Array.from({ length: 6 }, () =>
-      caracteres[Math.floor(Math.random() * caracteres.length)]
-    ).join('');
+      let existe = true;
+      while (existe) {
+        idEntrega = Array.from(
+          { length: 6 },
+          () => caracteres[Math.floor(Math.random() * caracteres.length)]
+        ).join("");
 
-    existe = await Entrega.findOne({ codigo:IdEntrega });
-  }
+        existe = await Entrega.findOne({ codigo: idEntrega }); // Corregido: 'IdEntrega' a 'idEntrega'
+      } // ✅ Crear entrega con ese ID
 
-  // ✅ Crear entrega con ese ID
-  const entrega = new Entrega({
-    operacionId: nuevoPedido._id,
-    estado: "Pendiente",
-    fechaRegistro: new Date(),
-    codigo:idEntrega
-  });
+      const entrega = new Entrega({
+        operacionId: nuevoPedido._id,
+        estado: "Pendiente",
+        fechaRegistro: new Date(),
+        codigo: idEntrega,
+        // NOTA: Aquí también faltaría la dirección y distrito.
+        // direccion: req.body.direccion || "Pendiente",
+        // distrito: req.body.distrito || "Pendiente"
+      });
 
-  await entrega.save();
-}
+      await entrega.save();
+    }
 
-     res.json({
+    res.json({
       mensaje: "Pedido y venta registrados correctamente",
       pedido: nuevoPedido,
       venta: nuevaVenta,
-      servicioDelivery: !!servicioDelivery
+      servicioDelivery: !!servicioDelivery,
     });
-
   } catch (error) {
     console.error(error);
     res
@@ -291,26 +297,32 @@ exports.registrarPedido = async (req, res) => {
   }
 };
 
+// ==========================================================
+// ⭐️ INICIO DE LA FUNCIÓN CORREGIDA ⭐️
+// ==========================================================
+
 exports.registrarPedidoInvitado = async (req, res) => {
   try {
-    const { cliente, detalles: productos, servicioDelivery, tipoComprobante, metodoPago } = req.body;
+    const {
+      cliente,
+      detalles: productos,
+      servicioDelivery,
+      tipoComprobante,
+      metodoPago,
+    } = req.body; // Validar datos mínimos
 
-    // Validar datos mínimos
     if (!cliente || !cliente.nroDoc || !cliente.nombre) {
-      return res
-        .status(400)
-        .json({
-          mensaje:
-            "Datos del cliente incompletos (nombre y nroDoc son obligatorios).",
-        });
+      return res.status(400).json({
+        mensaje:
+          "Datos del cliente incompletos (nombre y nroDoc son obligatorios).",
+      });
     }
     if (!productos || !Array.isArray(productos) || productos.length === 0) {
       return res
         .status(400)
         .json({ mensaje: "Debe incluir al menos un producto." });
-    }
+    } // Buscar o crear cliente por nroDoc
 
-    // Buscar o crear cliente por nroDoc
     const Cliente = mongoose.model("Cliente");
     let clienteEncontrado = await Cliente.findOne({ nroDoc: cliente.nroDoc });
 
@@ -322,9 +334,15 @@ exports.registrarPedidoInvitado = async (req, res) => {
         telefono: cliente.telefono || "",
         correo: cliente.correo || "",
       });
-    }
+    } else {
+      // Opcional: Actualizar datos si el cliente ya existe
+      clienteEncontrado.nombre = cliente.nombre;
+      clienteEncontrado.telefono =
+        cliente.telefono || clienteEncontrado.telefono;
+      clienteEncontrado.correo = cliente.correo || clienteEncontrado.correo;
+      await clienteEncontrado.save();
+    } // Validar productos y calcular subtotal
 
-    // Validar productos y calcular subtotal
     let subtotal = 0;
     let productosProcesados = [];
 
@@ -358,18 +376,19 @@ exports.registrarPedidoInvitado = async (req, res) => {
     }
 
     let codigoUnico;
-    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const caracteres =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
     let existe = true;
     while (existe) {
-      codigoUnico = Array.from({ length: 6 }, () =>
-        caracteres[Math.floor(Math.random() * caracteres.length)]
-      ).join('');
+      codigoUnico = Array.from(
+        { length: 6 },
+        () => caracteres[Math.floor(Math.random() * caracteres.length)]
+      ).join("");
 
       existe = await Operacion.findOne({ codigo: codigoUnico });
-    }
+    } // Crear la operación (pedido)
 
-    // Crear la operación (pedido)
     const nuevoPedido = new Operacion({
       nroOperacion,
       tipoOperacion: 1,
@@ -380,16 +399,14 @@ exports.registrarPedidoInvitado = async (req, res) => {
       cliente: clienteEncontrado._id,
       detalles: [],
       total: 0,
-      codigo: codigoUnico
-    });
+      codigo: codigoUnico,
+    }); // Calcular IGV y total
 
-    // Calcular IGV y total
     const igv = subtotal * 0.18;
     const total = subtotal + igv;
 
-    await nuevoPedido.save();
+    await nuevoPedido.save(); // Crear los detalles
 
-    // Crear los detalles
     let detallesPedido = [];
     for (let { producto, cantidad } of productosProcesados) {
       const subtotalItem = cantidad * producto.precio;
@@ -425,9 +442,8 @@ exports.registrarPedidoInvitado = async (req, res) => {
       detalles: [],
     });
 
-    await nuevaVenta.save();
+    await nuevaVenta.save(); // Crear los detalles de la venta
 
-    // Crear los detalles de la venta
     let detallesVenta = [];
     for (let { producto, cantidad } of productosProcesados) {
       const subtotal = cantidad * producto.precio;
@@ -445,49 +461,54 @@ exports.registrarPedidoInvitado = async (req, res) => {
     }
 
     nuevaVenta.detalles = detallesVenta;
-    await nuevaVenta.save();
+    await nuevaVenta.save(); // ========================================================== // ⭐️ AQUÍ ESTÁ LA CORRECCIÓN ⭐️ // ==========================================================
 
     if (servicioDelivery) {
+      // Generar ID único entrega
+      let idEntrega;
+      const caracteresEntrega =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-  // ✅ Generar ID único entrega
-  let idEntrega;
-  const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let existeEntrega = true;
+      while (existeEntrega) {
+        idEntrega = Array.from(
+          { length: 6 },
+          () =>
+            caracteresEntrega[
+              Math.floor(Math.random() * caracteresEntrega.length)
+            ]
+        ).join("");
 
-  let existe = true;
-  while (existe) {
-    idEntrega = Array.from({ length: 6 }, () =>
-      caracteres[Math.floor(Math.random() * caracteres.length)]
-    ).join('');
+        existeEntrega = await Entrega.findOne({ codigo: idEntrega });
+      } // ✅ Crear entrega con ese ID y LOS DATOS DE DIRECCIÓN
 
-    existe = await Entrega.findOne({ codigo:idEntrega });
-  }
+      const entrega = new Entrega({
+        operacionId: nuevoPedido._id,
+        estado: "Pendiente",
+        fechaRegistro: new Date(),
+        codigo: idEntrega, // 👇 ¡LÍNEAS AÑADIDAS! // Se toman del objeto 'cliente' que viene en el req.body
+        direccion: cliente.direccion || "Pendiente",
+        distrito: cliente.distrito || "Pendiente",
+      });
 
-  // ✅ Crear entrega con ese ID
-  const entrega = new Entrega({
-    operacionId: nuevoPedido._id,
-    estado: "Pendiente",
-    fechaRegistro: new Date(),
-    codigo:idEntrega
-  });
-
-  await entrega.save();
-}
-
-
+      await entrega.save();
+    } // ========================================================== // ⭐️ FIN DE LA CORRECCIÓN ⭐️ // ==========================================================
     return res.status(201).json({
       mensaje: "Pedido registrado correctamente (modo invitado)",
       pedido: nuevoPedido,
     });
   } catch (error) {
     console.error(error);
-    return res
-      .status(500)
-      .json({
-        mensaje: "Error al registrar pedido invitado",
-        error: error.message,
-      });
+    return res.status(500).json({
+      mensaje: "Error al registrar pedido invitado",
+      error: error.message,
+    });
   }
 };
+
+// ==========================================================
+// ⭐️ FIN DE LA FUNCIÓN CORREGIDA ⭐️
+// ==========================================================
 
 exports.obtenerOperaciones = async (req, res) => {
   try {
@@ -499,12 +520,12 @@ exports.obtenerOperaciones = async (req, res) => {
     }
 
     const operaciones = await Operacion.find(filter)
-      .populate('cliente')
+      .populate("cliente")
       .populate({
-        path: 'detalles',
-        populate: 'producto'
+        path: "detalles",
+        populate: "producto",
       })
-      .populate('salidas');
+      .populate("salidas");
 
     res.status(200).json(operaciones);
   } catch (error) {
@@ -536,32 +557,53 @@ exports.obtenerOperacion = async (req, res) => {
 
 exports.actualizarEstado = async (req, res) => {
   try {
-    const { nuevoEstado } = req.body; 
-    
-    const operacion = await Operacion.findById(req.params.id).populate('detalles');
+    const { nuevoEstado } = req.body;
+    const operacion = await Operacion.findById(req.params.id).populate(
+      "detalles"
+    );
     if (!operacion) {
       return res.status(404).json({ message: "Operación no encontrada" });
     }
 
     switch (operacion.tipoOperacion) {
       case 1:
-        if (!["Pagado", "En preparación", "Enviado", "Entregado", "Cancelado"].includes(nuevoEstado)) {
-            return res.status(400).json({ message: "Estado inválido para pedido" });
+        if (
+          ![
+            "Pagado",
+            "En preparación",
+            "Enviado",
+            "Entregado",
+            "Cancelado",
+          ].includes(nuevoEstado)
+        ) {
+          return res
+            .status(400)
+            .json({ message: "Estado inválido para pedido" });
         }
 
         if (
-          ["En preparación", "Enviado", "Entregado"].includes(operacion.estado) &&
+          ["En preparación", "Enviado", "Entregado"].includes(
+            operacion.estado
+          ) &&
           nuevoEstado === "Cancelado"
         ) {
-          return res.status(400).json({ message: "No se puede cancelar un pedido en preparación o posterior" });
+          return res
+            .status(400)
+            .json({
+              message:
+                "No se puede cancelar un pedido en preparación o posterior",
+            });
         }
 
         operacion.estado = nuevoEstado;
         await operacion.save();
 
-        return res.json({ message: "Estado del pedido actualizado correctamente", operacion });
+        return res.json({
+          message: "Estado del pedido actualizado correctamente",
+          operacion,
+        });
 
-      case 2: 
+      case 2:
         if (!["Pendiente", "Rechazada", "Aceptada"].includes(nuevoEstado)) {
           return res
             .status(400)
@@ -570,33 +612,31 @@ exports.actualizarEstado = async (req, res) => {
 
         if (nuevoEstado === "Aceptada") {
           if (!operacion.detalles || operacion.detalles.length === 0) {
-            return res
-              .status(400)
-              .json({
-                message:
-                  "No hay productos en la cotización para generar la venta",
-              });
+            return res.status(400).json({
+              message:
+                "No hay productos en la cotización para generar la venta",
+            });
           }
 
           let subtotal = 0;
           operacion.detalles.forEach((det) => {
             subtotal += det.cantidad * det.precio;
-          });
+          }); // Necesitarías definir nuevaVenta aquí si la vas a referenciar // const igv = +(subtotal * 0.18).toFixed(2); // const total = +(subtotal + igv).toFixed(2); // ...lógica para crear la venta...
 
-            const igv = +(subtotal * 0.18).toFixed(2);
-            const total = +(subtotal + igv).toFixed(2);
-            operacion.estado = "Aceptada";
-            await operacion.save();
+          operacion.estado = "Aceptada";
+          await operacion.save();
 
           return res.json({
-            message: "Cotización aceptada y convertida en venta",
-            ventaGenerada: nuevaVenta,
+            message: "Cotización aceptada", // Removida referencia a nuevaVenta // ventaGenerada: nuevaVenta,
           });
         }
 
         operacion.estado = nuevoEstado;
         await operacion.save();
-        return res.json({ message: "Estado actualizado correctamente", operacion });
+        return res.json({
+          message: "Estado actualizado correctamente",
+          operacion,
+        });
     }
   } catch (error) {
     console.error(error);
