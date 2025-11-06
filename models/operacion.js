@@ -1,5 +1,6 @@
-const mongoose = require('mongoose');
+// C:\Users\alero\OneDrive\Documentos\GitHub\TEST\deploy-server-FerreTechSC\models\operacion.js
 
+const mongoose = require('mongoose');
 
 const operacionSchema = new mongoose.Schema({
     tipoOperacion: {
@@ -16,8 +17,9 @@ const operacionSchema = new mongoose.Schema({
         type: Boolean,
     },
     cliente: {
-        type: mongoose.Schema.Types.ObjectId, ref: 'Cliente',
-        required: true
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Cliente', // <-- ¡Esto es crucial para que populate funcione!
+    required: true
     },
     igv: {
         type: Number
@@ -26,7 +28,9 @@ const operacionSchema = new mongoose.Schema({
         type: Number
     },
     estado: {
-        type: String
+        type: String,
+        enum: ['Recibido', 'En Preparacion', 'Enviado', 'Entregado'],
+        default: 'Recibido'
     },
     fechaEmision: {
         type: Date,
@@ -40,5 +44,6 @@ const operacionSchema = new mongoose.Schema({
     codigo: { type: String }
 })
 
-const Operacion = mongoose.model('Operacion', operacionSchema);
+// Exporta el MODELO
+const Operacion = mongoose.model('Operacion', operacionSchema, 'operaciones'); //Asegúrate de apuntar a la colección 'operaciones'
 module.exports = Operacion;
