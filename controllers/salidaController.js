@@ -63,9 +63,11 @@ exports.registrarSalida = async (req, res) => {
       return res.status(400).json({ message: 'Solo se pueden registrar salidas para pedidos' });
     }
 
-    if (operacion.estado !== 'Enviado' || operacion.estado !== 'Entregado') {
+    const estadosPermitidos = ['Enviado', 'Entregado'];
+
+    if (!estadosPermitidos.includes(operacion.estado)) {
       return res.status(400).json({
-        message: 'Solo se puede registrar salida para pedidos con estado "Enviado"'
+        message: 'Solo se puede registrar salida para pedidos con estado Enviado o Entregado'
       });
     }
 
