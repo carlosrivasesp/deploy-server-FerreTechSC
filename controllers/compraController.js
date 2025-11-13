@@ -53,18 +53,25 @@ exports.registrarCompra = async (req, res) => {
     let productosProcesados = [];
 
     for (let item of productos) {
-      const producto = await Producto.findOne({ nombre: item.nombre });
+      const producto = await Producto.findOne({ _id: item.producto }).populate(
+        "productoProveedor"
+      );
       if (!producto) {
         return res
           .status(404)
-          .json({ mensaje: `Producto ${item.nombre} no encontrado.` });
+          .json({ mensaje: `Producto con ID ${item.producto} no encontrado.` });
       }
 
-      productosProcesados.push({ producto, cantidad: item.cantidad });
-      subtotalCompra += item.cantidad * producto.precio;
+      const precioCompra = producto.productoProveedor?.precio || producto.precio;
+      
+      productosProcesados.push({
+        producto,
+        cantidad: item.cantidad,
+        precioCompra,
+      });
+      subtotalCompra += item.cantidad * precioCompra;
     }
 
-    // ✅ Calcular IGV y total fuera del bucle
     const igvCompra = +(subtotalCompra * 0.18).toFixed(2);
     const totalCompra = +(subtotalCompra + igvCompra).toFixed(2);
 
@@ -73,16 +80,16 @@ exports.registrarCompra = async (req, res) => {
       metodoPago,
       estado: "Pendiente",
       detalles: [],
-      total: 0,
-      igv: 0,
+      total: totalCompra,
+      igv: igvCompra,
       proveedor: new mongoose.Types.ObjectId(proveedor),
     });
 
     await nuevaCompra.save();
 
     let detallesCompra = [];
-    for (let { producto, cantidad } of productosProcesados) {
-      const subtotal = cantidad * producto.precio;
+    for (let { producto, cantidad, precioCompra } of productosProcesados) {
+      const subtotal = cantidad * precioCompra;
 
       const detalle = new DetalleCompra({
         compra: nuevaCompra._id,
@@ -99,8 +106,6 @@ exports.registrarCompra = async (req, res) => {
     }
 
     nuevaCompra.detalles = detallesCompra;
-    nuevaCompra.igv = igvCompra;
-    nuevaCompra.total = totalCompra;
     await nuevaCompra.save();
 
     const compraConProveedor = await Compra.findById(nuevaCompra._id)

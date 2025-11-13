@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const productoSchema = mongoose.Schema({
+const productoProveedorSchema = mongoose.Schema({
     codInt: {
         type: String,
         required: true,
@@ -14,14 +14,6 @@ const productoSchema = mongoose.Schema({
         type: Number,
         required: true
     },
-    stockActual: {
-        type: Number,
-        default: 0
-    },
-    stockMin: {
-        type: Number,
-        default: 9
-    },
     categoria: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Categoria',
@@ -32,17 +24,6 @@ const productoSchema = mongoose.Schema({
         ref: 'Marca',
         required: true
     },
-    estado: {
-        type: String, 
-        enum: ['Activo', 'Descontinuado']
-    },
-    imageUrl: {
-        type: String
-    },
-    productoProveedor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'ProductoProveedor'
-    }
 });
 
-module.exports = mongoose.model('Producto', productoSchema)
+module.exports = mongoose.model('ProductoProveedor', productoProveedorSchema)
