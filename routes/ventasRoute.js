@@ -1,20 +1,29 @@
 const express = require('express');
 const router = express.Router();
+
 const ventaController = require('../controllers/ventaController');
 const detalleVentaController = require('../controllers/detalleventaController');
 
-router.post('/', ventaController.registrarVenta);
-router.get('/', ventaController.obtenerVentas);
-router.get('/detalles', detalleVentaController.obtenerDetallesVenta);
+// ==============================
+// 🔹 CRUD PRINCIPAL DE VENTAS
+// ==============================
+router.post('/', ventaController.registrarVenta);      // Crear nueva venta
+router.get('/', ventaController.obtenerVentas);        // Obtener todas las ventas
+router.get('/:id', ventaController.obtenerVenta);      // Obtener venta por ID
+router.put('/:id', ventaController.actualizarVenta);   // Actualizar venta existente
 
-router.get('/exportar-facturas', ventaController.exportFacturas);
-router.get('/exportar-boletas', ventaController.exportBoletas);
-router.get('/exportar-efectivo', ventaController.exportEfectivo);
-router.get('/exportar-otros', ventaController.exportOtros);
-router.get('/exportar-listado-general', ventaController.exportVentasGeneral);
+// ==============================
+// 🔹 DETALLES DE VENTA
+// ==============================
+router.get('/detalles/listado', detalleVentaController.obtenerDetallesVenta); // Detalles generales de ventas
 
-
-router.get('/:id', ventaController.obtenerVenta);
-router.put('/:id', ventaController.actualizarVenta);
+// ==============================
+// 🔹 EXPORTACIONES DE VENTAS
+// ==============================
+router.get('/exportar/facturas', ventaController.exportFacturas);
+router.get('/exportar/boletas', ventaController.exportBoletas);
+router.get('/exportar/efectivo', ventaController.exportEfectivo);
+router.get('/exportar/otros', ventaController.exportOtros);
+router.get('/exportar/listado-general', ventaController.exportVentasGeneral);
 
 module.exports = router;
