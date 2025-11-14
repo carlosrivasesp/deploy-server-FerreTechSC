@@ -118,7 +118,11 @@ app.use('/api/exportarEntregas', entregas);
 
 // Mercado Pago
 app.use('/api/mercado-pago', mercadoPago);
-
+app.get('/redirect', (req, res) => {
+  const status = req.query.status;
+  // Redirige al frontend local según el status
+  res.redirect(`http://localhost:4200/principal?status=${status}`);
+});
 // arranque
 app.listen(4000, () => {
   console.log("El puerto está corriendo perfectamente");
