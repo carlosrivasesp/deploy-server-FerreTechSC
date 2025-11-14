@@ -5,8 +5,12 @@ const Entrega = require("../models/entregas");
 const Venta = require("../models/venta");
 const DetalleVenta = require("../models/detalleventa");
 const mongoose = require("mongoose");
+const Cliente = require("../models/cliente");
+const { enviarEmail } = require("../utils/email");
 
-// --- (La función 'registrarCotizacion' se mantiene igual) ---
+// ---------------------------------------------------------
+// REGISTRAR COTIZACIÓN
+// ---------------------------------------------------------
 exports.registrarCotizacion = async (req, res) => {
   try {
     const { cliente, detalles: productos } = req.body;
@@ -18,7 +22,7 @@ exports.registrarCotizacion = async (req, res) => {
       return res
         .status(400)
         .json({ message: "Debe enviar al menos un producto" });
-    } // Validar productos y calcular subtotal
+    }
 
     let subtotal = 0;
     let productosProcesados = [];
@@ -35,9 +39,9 @@ exports.registrarCotizacion = async (req, res) => {
       subtotal += item.cantidad * producto.precio;
     }
 
-    const lastCotizacion = await Operacion.findOne({
-      tipoOperacion: 2,
-    }).sort({ nroOperacion: -1 });
+    const lastCotizacion = await Operacion.findOne({ tipoOperacion: 2 }).sort({
+      nroOperacion: -1,
+    });
 
     let nroOperacion = "001";
     if (lastCotizacion && lastCotizacion.nroOperacion) {
@@ -54,11 +58,10 @@ exports.registrarCotizacion = async (req, res) => {
       detalles: [],
       total: 0,
       cliente: new mongoose.Types.ObjectId(cliente),
-    }); // Calcular total
+    });
 
     const total = +subtotal.toFixed(2);
-
-    await nuevaCotizacion.save(); // Crear detalles
+    await nuevaCotizacion.save();
 
     let detallesCotizacion = [];
     for (let { producto, cantidad } of productosProcesados) {
@@ -80,7 +83,6 @@ exports.registrarCotizacion = async (req, res) => {
 
     nuevaCotizacion.detalles = detallesCotizacion;
     nuevaCotizacion.total = total;
-
     await nuevaCotizacion.save();
 
     res.status(201).json({
@@ -95,7 +97,9 @@ exports.registrarCotizacion = async (req, res) => {
   }
 };
 
-// --- (La función 'registrarPedido' se mantiene igual) ---
+// ---------------------------------------------------------
+// REGISTRAR PEDIDO (CLIENTE REGISTRADO)
+// ---------------------------------------------------------
 exports.registrarPedido = async (req, res) => {
   try {
     const {
@@ -118,7 +122,7 @@ exports.registrarPedido = async (req, res) => {
         .json({ mensaje: "clienteId no es un ObjectId válido." });
     }
 
-    const clienteExiste = await mongoose.model("Cliente").findById(cliente);
+    const clienteExiste = await Cliente.findById(cliente);
     if (!clienteExiste) {
       return res.status(404).json({ mensaje: "El cliente no existe." });
     }
@@ -146,18 +150,20 @@ exports.registrarPedido = async (req, res) => {
       subtotal += parseFloat((item.cantidad * producto.precio).toFixed(2));
     }
 
-    const lastPedido = await Operacion.findOne({
-      tipoOperacion: 1,
-    }).sort({ nroOperacion: -1 });
+    const lastPedido = await Operacion.findOne({ tipoOperacion: 1 }).sort({
+      nroOperacion: -1,
+    });
 
     let nroOperacion = "001";
     if (lastPedido && lastPedido.nroOperacion) {
       const siguiente = parseInt(lastPedido.nroOperacion) + 1;
       nroOperacion = String(siguiente).padStart(3, "0");
     }
+
     let codigoUnico;
     const caracteresOp =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
     let existeOp = true;
     while (existeOp) {
       codigoUnico = Array.from(
@@ -170,7 +176,7 @@ exports.registrarPedido = async (req, res) => {
     const nuevoPedido = new Operacion({
       nroOperacion,
       fechaEmision: Date.now(),
-      fechaVenc: new Date(new Date().setDate(new Date().getDate())),
+      fechaVenc: new Date(),
       tipoOperacion: 1,
       estado: "Pagado",
       detalles: [],
@@ -205,12 +211,11 @@ exports.registrarPedido = async (req, res) => {
     nuevoPedido.detalles = detallesPedido;
     nuevoPedido.igv = parseFloat(igv.toFixed(2));
     nuevoPedido.total = parseFloat(total.toFixed(2));
-
     await nuevoPedido.save();
 
     const nuevaVenta = new Venta({
-      tipoComprobante: tipoComprobante,
-      metodoPago: metodoPago,
+      tipoComprobante,
+      metodoPago,
       cliente: new mongoose.Types.ObjectId(cliente),
       fechaEmision: Date.now(),
       fechaVenc: new Date(),
@@ -241,34 +246,49 @@ exports.registrarPedido = async (req, res) => {
     nuevaVenta.detalles = detallesVenta;
     await nuevaVenta.save();
 
-    let idEntrega;
-    const caracteres =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-    let existe = true;
-    while (existe) {
-      idEntrega = Array.from(
-        { length: 6 },
-        () => caracteres[Math.floor(Math.random() * caracteres.length)]
-      ).join("");
-
-      existe = await Entrega.findOne({ codigo: idEntrega });
-    }
-
+    // DELIVERY
     if (servicioDelivery) {
-      // Tu código original tenía esto duplicado, lo limpié en la corrección anterior.
-      // Ahora usamos el 'idEntrega' generado arriba.
+      let idEntrega;
+      const caracteres =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+      let existe = true;
+      while (existe) {
+        idEntrega = Array.from(
+          { length: 6 },
+          () => caracteres[Math.floor(Math.random() * caracteres.length)]
+        ).join("");
+
+        existe = await Entrega.findOne({ codigo: idEntrega });
+      }
 
       const entrega = new Entrega({
         operacionId: nuevoPedido._id,
         estado: "Pendiente",
-        operacionId: nuevoPedido._id,
-        estado: "Pendiente",
         fechaRegistro: new Date(),
-        codigo: idEntrega, // NOTA: Aquí también faltaría la dirección y distrito. // direccion: req.body.direccion || "Pendiente", // distrito: req.body.distrito || "Pendiente"
+        codigo: idEntrega,
       });
 
       await entrega.save();
+    }
+
+    // ENVÍO DE EMAIL
+    if (clienteExiste.correo) {
+      const asunto = `Confirmación de tu Pedido: #${nuevoPedido.nroOperacion}`;
+      const html = `
+        <h1>¡Gracias por tu compra, ${clienteExiste.nombre}!</h1>
+        <p>Pedido Nº <strong>${nuevoPedido.nroOperacion}</strong> registrado correctamente.</p>
+        <p>Tu código de seguimiento es:</p>
+        <h2>${nuevoPedido.codigo}</h2>
+      `;
+
+      enviarEmail(clienteExiste.correo, asunto, html).then((result) => {
+        if (result.success) {
+          console.log(`Correo enviado a ${clienteExiste.correo}`);
+        } else {
+          console.error(`Error enviando correo:`, result.error);
+        }
+      });
     }
 
     res.json({
@@ -285,7 +305,9 @@ exports.registrarPedido = async (req, res) => {
   }
 };
 
-// --- (La función 'registrarPedidoInvitado' se mantiene igual, con nuestra corrección anterior) ---
+// ---------------------------------------------------------
+// REGISTRAR PEDIDO INVITADO
+// ---------------------------------------------------------
 exports.registrarPedidoInvitado = async (req, res) => {
   try {
     const {
@@ -298,17 +320,22 @@ exports.registrarPedidoInvitado = async (req, res) => {
 
     if (!cliente || !cliente.nroDoc || !cliente.nombre) {
       return res.status(400).json({
-        mensaje:
-          "Datos del cliente incompletos (nombre y nroDoc son obligatorios).",
+        mensaje: "Datos del cliente incompletos.",
       });
     }
+
+    if (!cliente.correo) {
+      return res.status(400).json({
+        mensaje: "El correo es obligatorio para registrar el pedido.",
+      });
+    }
+
     if (!productos || !Array.isArray(productos) || productos.length === 0) {
       return res
         .status(400)
         .json({ mensaje: "Debe incluir al menos un producto." });
     }
 
-    const Cliente = mongoose.model("Cliente");
     let clienteEncontrado = await Cliente.findOne({ nroDoc: cliente.nroDoc });
 
     if (!clienteEncontrado) {
@@ -415,8 +442,8 @@ exports.registrarPedidoInvitado = async (req, res) => {
     await nuevoPedido.save();
 
     const nuevaVenta = new Venta({
-      tipoComprobante: tipoComprobante,
-      metodoPago: metodoPago,
+      tipoComprobante,
+      metodoPago,
       cliente: clienteEncontrado._id,
       fechaEmision: Date.now(),
       fechaVenc: new Date(),
@@ -431,6 +458,7 @@ exports.registrarPedidoInvitado = async (req, res) => {
     let detallesVenta = [];
     for (let { producto, cantidad } of productosProcesados) {
       const subtotal = cantidad * producto.precio;
+
       const detalleVenta = new DetalleVenta({
         venta: nuevaVenta._id,
         producto: producto._id,
@@ -476,7 +504,69 @@ exports.registrarPedidoInvitado = async (req, res) => {
 
       await entrega.save();
     }
-    return res.status(201).json({
+
+    // ENVÍO DE CORREO INVITADO
+    if (clienteEncontrado.correo) {
+      const asunto = `Confirmación de tu Pedido: #${nuevoPedido.nroOperacion}`;
+      const html = `
+  <div style="
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f4f4f4;
+    padding: 30px;
+  ">
+    <div style="
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      overflow: hidden;
+    ">
+      <div style="
+        background: linear-gradient(135deg, #2E86DE, #58D68D);
+        color: white;
+        text-align: center;
+        padding: 25px 10px;
+      ">
+        <h1 style="margin: 0;">¡Gracias por tu compra!</h1>
+      </div>
+
+      <div style="padding: 25px; color: #333;">
+        <p>Hola <strong>${clienteEncontrado.nombre}</strong>,</p>
+        <p>Tu pedido <strong>N° ${nuevoPedido.nroOperacion}</strong> ha sido registrado correctamente.</p>
+
+        <div style="
+          text-align: center;
+          margin: 30px 0;
+          background: #f0f8ff;
+          border-radius: 8px;
+          padding: 15px;
+          border: 1px solid #d0e6ff;
+        ">
+          <p style="font-size: 16px; margin-bottom: 5px;">Tu código de seguimiento es:</p>
+          <h2 style="color: #2E86DE; margin: 0;">${nuevoPedido.codigo}</h2>
+        </div>
+
+        <p style="margin-top: 25px;">Puedes revisar el estado de tu pedido desde tu cuenta en <a href="https://tutienda.com" style="color:#2E86DE; text-decoration:none;">tutienda.com</a>.</p>
+
+        <p style="font-size: 13px; color: #888; text-align: center; margin-top: 40px;">
+          Este correo fue generado automáticamente. Por favor, no respondas a este mensaje.
+        </p>
+      </div>
+    </div>
+  </div>
+`;
+
+      enviarEmail(clienteEncontrado.correo, asunto, html).then((result) => {
+        if (result.success) {
+          console.log(`Correo enviado a ${clienteEncontrado.correo}`);
+        } else {
+          console.error(`Error enviando correo:`, result.error);
+        }
+      });
+    }
+
+    res.status(201).json({
       mensaje: "Pedido registrado correctamente (modo invitado)",
       pedido: nuevoPedido,
     });
@@ -489,7 +579,9 @@ exports.registrarPedidoInvitado = async (req, res) => {
   }
 };
 
-// --- (La función 'obtenerOperaciones' se mantiene igual) ---
+// ---------------------------------------------------------
+// OBTENER OPERACIONES
+// ---------------------------------------------------------
 exports.obtenerOperaciones = async (req, res) => {
   try {
     const { tipoOperacion } = req.query;
@@ -513,6 +605,9 @@ exports.obtenerOperaciones = async (req, res) => {
   }
 };
 
+// ---------------------------------------------------------
+// OBTENER OPERACIÓN
+// ---------------------------------------------------------
 exports.obtenerOperacion = async (req, res) => {
   try {
     const operacion = await Operacion.findById(req.params.id)
@@ -535,18 +630,22 @@ exports.obtenerOperacion = async (req, res) => {
   }
 };
 
+// ---------------------------------------------------------
+// ACTUALIZAR ESTADO
+// ---------------------------------------------------------
 exports.actualizarEstado = async (req, res) => {
   try {
     const { nuevoEstado } = req.body;
     const operacion = await Operacion.findById(req.params.id).populate(
       "detalles"
     );
+
     if (!operacion) {
       return res.status(404).json({ message: "Operación no encontrada" });
     }
 
     switch (operacion.tipoOperacion) {
-      case 1: // Es un Pedido
+      case 1: // PEDIDO
         if (
           ![
             "Pagado",
@@ -571,10 +670,10 @@ exports.actualizarEstado = async (req, res) => {
             message:
               "No se puede cancelar un pedido en preparación o posterior",
           });
-        } // Guardar el estado de la Operacion
+        }
 
         operacion.estado = nuevoEstado;
-        await operacion.save(); 
+        await operacion.save();
 
         if (operacion.servicioDelivery) {
           const entrega = await Entrega.findOne({ operacionId: operacion._id });
@@ -583,15 +682,13 @@ exports.actualizarEstado = async (req, res) => {
 
             switch (nuevoEstado) {
               case "Pagado":
-                if (entrega.estado === "Pendiente") {
-                  nuevoEstadoEntrega = "Pendiente";
-                }
+                nuevoEstadoEntrega = "Pendiente";
                 break;
               case "En preparacion":
                 nuevoEstadoEntrega = "En proceso";
                 break;
               case "Enviado":
-                nuevoEstadoEntrega = "Enviado"; // ¡El estado clave que faltaba!
+                nuevoEstadoEntrega = "Enviado";
                 break;
               case "Entregado":
                 nuevoEstadoEntrega = "Finalizado";
@@ -607,35 +704,22 @@ exports.actualizarEstado = async (req, res) => {
             }
           }
         }
+
         return res.json({
           message: "Estado del pedido y entrega actualizados",
           operacion,
         });
 
-      case 2: // Es una Cotización
+      case 2: // COTIZACIÓN
         if (!["Pendiente", "Rechazada", "Aceptada"].includes(nuevoEstado)) {
           return res
             .status(400)
             .json({ message: "Estado inválido para cotización" });
         }
 
-        if (nuevoEstado === "Aceptada") {
-          if (!operacion.detalles || operacion.detalles.length === 0) {
-            return res.status(400).json({
-              message:
-                "No hay productos en la cotización para generar la venta",
-            });
-          }
-          operacion.estado = "Aceptada";
-          await operacion.save();
-
-          return res.json({
-            message: "Cotización aceptada",
-          });
-        }
-
         operacion.estado = nuevoEstado;
         await operacion.save();
+
         return res.json({
           message: "Estado actualizado correctamente",
           operacion,
@@ -648,11 +732,10 @@ exports.actualizarEstado = async (req, res) => {
       .json({ message: "Error al actualizar estado de la operación" });
   }
 };
-// ==========================================================
-// ⭐️ FIN DE LA FUNCIÓN CORREGIDA ⭐️
-// ==========================================================
 
-// --- (La función 'obtenerPedidoCliente' se mantiene igual) ---
+// ---------------------------------------------------------
+// OBTENER PEDIDOS POR CLIENTE (DNI)
+// ---------------------------------------------------------
 exports.obtenerPedidoCliente = async (req, res) => {
   try {
     const pedido = await Operacion.find()
@@ -670,6 +753,7 @@ exports.obtenerPedidoCliente = async (req, res) => {
         .status(400)
         .json({ mensaje: "No existen pedidos para este cliente" });
     }
+
     res.json(pedidoCliente);
   } catch (error) {
     console.log(error);

@@ -5,8 +5,12 @@ const operacionController = require("../controllers/operacionController");
 router.post("/pedido", operacionController.registrarPedido);
 router.post("/cotizacion", operacionController.registrarCotizacion);
 
-// 🔹 NUEVA RUTA INVITADO
-router.post("/pedido-invitado", operacionController.registrarPedidoInvitado);
+// 🔹 LÍNEA CORREGIDA
+// Cambiado de "/pedido-invitado" a "/registrar-pedido-invitado"
+router.post(
+  "/registrar-pedido-invitado",
+  operacionController.registrarPedidoInvitado
+);
 
 router.get("/", operacionController.obtenerOperaciones);
 router.get("/:id", operacionController.obtenerOperacion);
