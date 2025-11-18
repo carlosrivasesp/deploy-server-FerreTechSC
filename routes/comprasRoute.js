@@ -10,7 +10,6 @@ router.get('/proveedor', compraController.exportByProveedor);
 
 router.post('/', compraController.registrarCompra);
 router.get('/', compraController.obtenerCompras);
-router.get('/detalles', detalleCompraController.obtenerDetallesCompra);
 router.get('/:id', compraController.obtenerCompra);
 router.put('/:id', compraController.actualizarCompra);
 

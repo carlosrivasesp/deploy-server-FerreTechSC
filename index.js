@@ -8,8 +8,6 @@ const connectDB = require("./config/db");
 const cors = require("cors");
 const morgan = require("morgan");
 
-const trackingRoutes = require('./routes/trackingRoute');
-
 // routes 
 const operacion = require('./routes/operacionRoute');
 const productos = require('./routes/productoRoute');
@@ -23,9 +21,12 @@ const marcas = require('./routes/marcaRoute');
 const ingresos = require('./routes/ingresoRoute');
 const salidas = require('./routes/salidaRoute');
 const rutasComprasSugeridas = require('./routes/compraSugeridasRoute');
-const entregas = require('./routes/entregasRoute.js');
-const reniecRoutes = require('./routes/servicioE.js')
-const productoProveedorRoutes = require('./routes/productoProveedorRoute.js');
+const entregas = require('./routes/entregasRoute');
+const reniecRoutes = require('./routes/servicioE')
+const productoProveedor = require('./routes/productoProveedorRoute');
+const tracking = require('./routes/trackingRoute');
+const ordenCompra = require('./routes/ordenCompraRoute');
+const carrito = require('./routes/carritoRoute')
 
 // creamos servidor
 const app = express();
@@ -40,24 +41,17 @@ app.use(morgan("[:date] :method :url :status - :response-time ms"));
 
 // Usuario (auth)
 app.use("/api/auth", require("./routes/usuarioRoute"));
-app.use('/api/carrito', require('./routes/carritoRoute'));
+app.use('/api/carrito', carrito);
 app.use('/api/salidas', salidas);
 app.use('/api/ingresos', ingresos);
 app.use("/api/reniec", reniecRoutes);
-app.use('/api/productos-proveedor', productoProveedorRoutes);
+app.use('/api/productos-proveedor', productoProveedor);
 app.use("/api/productos", productos);
 app.use("/api/operacion", operacion);
 app.use("/api/ventas", ventas);
 app.use("/api/clientes", clientes);
-app.use('/api/tracking', trackingRoutes);
-
-// compras
-app.use("/api/registrarCompra", compras);
-app.use("/api/obtenerCompras", compras);
-app.use("/api/obtenerDetallesCompra", compras);
-app.use("/api/obtenerCompra", compras);
-app.use("/api/actualizarCompra", compras);
-app.use("/api/exportarCompras", compras);
+app.use('/api/tracking', tracking);
+app.use('/api/ordenC', ordenCompra);
 
 // cotizaciones
 app.use("/api/registrarCotizacion", cotizaciones);
