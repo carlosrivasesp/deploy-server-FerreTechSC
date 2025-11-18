@@ -144,6 +144,12 @@ exports.obtenerVentas = async (req, res) => {
   }
 };
 
+exports.getVentaByPedidoId = async (req, res) => {
+  const venta = await Venta.findOne({ idPedido: req.params.idPedido });
+  res.json(venta);
+};
+
+
 // 1. Función auxiliar primero (exportarFacturas)
 const exportarFacturas = async (ventas, res, nombreArchivo) => {
   try {

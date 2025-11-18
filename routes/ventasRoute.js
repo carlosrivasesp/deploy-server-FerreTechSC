@@ -11,6 +11,7 @@ router.post('/', ventaController.registrarVenta);      // Crear nueva venta
 router.get('/', ventaController.obtenerVentas);        // Obtener todas las ventas
 router.get('/:id', ventaController.obtenerVenta);      // Obtener venta por ID
 router.put('/:id', ventaController.actualizarVenta);   // Actualizar venta existente
+router.get('/pedido/:pedidoId', ventaController.getVentaByPedidoId); 
 
 // ==============================
 // 🔹 DETALLES DE VENTA
