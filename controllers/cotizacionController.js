@@ -165,7 +165,7 @@ exports.obtenerDetallesCotizacionPorVenta = async (req, res) => {
 
 exports.actualizarCotizacion = async (req, res) => {
   try {
-    const { estado, tipoComprobante, serie, metodoPago } = req.body;
+    const { estado, tipoComprobante, serie, metodoPago , servicioDelivery} = req.body;
 
     const cotizacion = await Cotizacion.findById(req.params.id)
       .populate("cliente")
@@ -250,7 +250,8 @@ exports.actualizarCotizacion = async (req, res) => {
         tipoOperacion: 1, // Pedido
         fechaEmision: Date.now(),
         fechaVenc: Date.now(),
-        estado: "Pagado",
+        estado: "Pendiente",
+        servicioDelivery: servicioDelivery,
         cliente: cotizacion.cliente._id,
         igv: igvCalc.toFixed(2),
         total: totalCalc.toFixed(2),
