@@ -12,7 +12,6 @@ const morgan = require("morgan");
 const operacion = require('./routes/operacionRoute');
 const productos = require('./routes/productoRoute');
 const ventas = require('./routes/ventasRoute');
-const compras = require('./routes/comprasRoute');
 const cotizaciones = require('./routes/cotizacionRoute');
 const proveedores = require('./routes/proveedorRoute');
 const clientes = require('./routes/clienteRoute');
@@ -22,8 +21,7 @@ const ingresos = require('./routes/ingresoRoute');
 const salidas = require('./routes/salidaRoute');
 const rutasComprasSugeridas = require('./routes/compraSugeridasRoute');
 const entregas = require('./routes/entregasRoute');
-const reniecRoutes = require('./routes/servicioE')
-const productoProveedor = require('./routes/productoProveedorRoute');
+const reniecRoutes = require('./routes/servicioE');
 const tracking = require('./routes/trackingRoute');
 const ordenCompra = require('./routes/ordenCompraRoute');
 const carrito = require('./routes/carritoRoute')
@@ -45,7 +43,6 @@ app.use('/api/carrito', carrito);
 app.use('/api/salidas', salidas);
 app.use('/api/ingresos', ingresos);
 app.use("/api/reniec", reniecRoutes);
-app.use('/api/productos-proveedor', productoProveedor);
 app.use("/api/productos", productos);
 app.use("/api/operacion", operacion);
 app.use("/api/ventas", ventas);

@@ -231,7 +231,7 @@ exports.obtenerProductosPorProveedor = async (req, res) => {
 
         const productos = await Producto.find({ 
             marca: { $in: idsMarcas }
-        }).populate('marca').populate('categoria').populate('productoProveedor');;
+        }).populate('marca').populate('categoria');
 
         res.status(200).json(productos);
     } catch (error) {
@@ -254,7 +254,7 @@ exports.obtenerProductosPorProveedorSinStock = async (req, res) => {
         
         const productos = await Producto.find({ 
             marca: { $in: idsMarcas }
-        }).populate('marca').populate('categoria').populate('productoProveedor');;
+        }).populate('marca').populate('categoria');
 
         const productosFiltrados = productos.filter(p => p.stockActual <= p.stockMin);
 

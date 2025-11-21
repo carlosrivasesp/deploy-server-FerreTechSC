@@ -38,10 +38,6 @@ const productoSchema = mongoose.Schema({
     },
     imageUrl: {
         type: String
-    },
-    productoProveedor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'ProductoProveedor'
     }
 });
 

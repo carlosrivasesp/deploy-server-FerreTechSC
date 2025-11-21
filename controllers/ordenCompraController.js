@@ -23,10 +23,10 @@ exports.registrarOrdenCompra = async (req, res) => {
     let detallesIds = [];
 
     for (let d of detalles) {
-      const producto = await Producto.findById(d.producto).populate("productoProveedor");
+      const producto = await Producto.findById(d.producto);
       if (!producto) continue;
 
-      const precioCompra = producto.productoProveedor?.precio ?? producto.precio;
+      const precioCompra = producto.precio;
       const subtotal = precioCompra * d.cantidad;
       total += subtotal;
 
