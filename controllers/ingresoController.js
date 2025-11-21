@@ -1,5 +1,5 @@
 const Ingreso = require('../models/ingreso');
-const Compra = require('../models/compra');
+const OrdenCompra = require('../models/ordenCompra');
 const Producto = require('../models/producto');
 const DetalleCompra = require('../models/detallecompra');
 
@@ -57,14 +57,14 @@ exports.registrarIngreso = async (req, res) => {
   try {
     const { compraId, cantidadTotal, detalles, fechaIngreso } = req.body;
 
-    // Buscar la compra
-    const compra = await Compra.findById(compraId).populate('detalles');
-    if (!compra) {
-      return res.status(404).json({ message: 'Compra no encontrada' });
+    // Buscar la OrdenCompra
+    const ordenCompra = await OrdenCompra.findById(compraId).populate('detalles');
+    if (!ordenCompra) {
+      return res.status(404).json({ message: 'OrdenCompra no encontrada' });
     }
 
     // Validación: solo compras "Aprobadas" se pueden ingresar
-    if (compra.estado !== 'Aprobado') {
+    if (ordenCompra.estado !== 'Aprobada') {
       return res.status(400).json({
         message: 'Solo se puede registrar ingreso de compras con estado "Aprobado"'
       });
@@ -97,8 +97,8 @@ exports.registrarIngreso = async (req, res) => {
       await producto.save();
     }
 
-    // Guardar referencia del ingreso en la compra (si lo necesitas)
-    await Compra.findByIdAndUpdate(compraId, { $push: { ingresos: ingresoGuardado._id } });
+    // Guardar referencia del ingreso en la OrdenCompra (si lo necesitas)
+    await OrdenCompra.findByIdAndUpdate(compraId, { $push: { ingresos: ingresoGuardado._id } });
 
     res.status(201).json({
       message: 'Ingreso registrado correctamente',
