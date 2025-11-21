@@ -29,7 +29,7 @@ const operacionSchema = new mongoose.Schema({
     },
     estado: {
         type: String,
-        enum: ['Pendiente','Pagado', 'En preparacion', 'Enviado', 'Entregado'],
+        enum: ['Pendiente', 'Pagado', 'En preparacion', 'Enviado', 'Entregado'],
         default: 'Pagado'
     },
     fechaEmision: {
