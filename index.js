@@ -19,7 +19,6 @@ const categorias = require('./routes/categoriaRoute');
 const marcas = require('./routes/marcaRoute');
 const ingresos = require('./routes/ingresoRoute');
 const salidas = require('./routes/salidaRoute');
-const rutasComprasSugeridas = require('./routes/compraSugeridasRoute');
 const entregas = require('./routes/entregasRoute');
 const reniecRoutes = require('./routes/servicioE');
 const tracking = require('./routes/trackingRoute');
@@ -79,9 +78,6 @@ app.use('/api/getMarcas', marcas);
 app.use('/api/updateMarca', marcas);
 app.use('/api/getMarca', marcas);
 app.use('/api/deleteMarca', marcas);
-
-// compras sugeridas
-app.use("/api/comprasSugeridas", rutasComprasSugeridas);
 
 // Entregas
 app.use('/api/getEntregas', entregas);

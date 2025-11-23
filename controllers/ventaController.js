@@ -6,8 +6,6 @@ const mongoose = require("mongoose");
 const ingreso = require("../models/ingreso");
 const ExcelJS = require("exceljs");
 
-const sugerirCompraSiEsNecesario = require("../utils/sugerirCompra");
-
 exports.registrarVenta = async (req, res) => {
   try {
     const {
@@ -324,111 +322,11 @@ exports.actualizarVenta = async (req, res) => {
     venta.estado = estado || venta.estado;
     venta.metodoPago = metodoPago || venta.metodoPago;
 
-    if (estado === "Registrado" && estadoAnterior !== "Registrado") {
-      let cantidadTotal = 0;
-
-      for (let detalleId of venta.detalles) {
-        let detalle = await DetalleVenta.findById(detalleId).populate(
-          "producto"
-        );
-
-        if (!detalle || !detalle.producto) {
-          return res.status(400).json({
-            mensaje: "Detalle o producto no encontrado para la venta.",
-          });
-        }
-
-        let producto = detalle.producto;
-
-        producto.stockActual -= detalle.cantidad;
-        await producto.save();
-        await sugerirCompraSiEsNecesario(producto._id);
-
-        cantidadTotal += detalle.cantidad;
-      }
-
-      // Crear un solo ingreso con los datos de la venta (ya obtenida)
-      const salida = new Salida({
-        tipoOperacion: "Venta Registrada",
-        ventaId: venta._id,
-        cantidadTotal,
-        fechaSalida: new Date(),
-      });
-
-      await salida.save();
-    } else if (estado === "Anulado" && estadoAnterior === "Registrado") {
-      let cantidadTotal = 0;
-
-      for (let detalleId of venta.detalles) {
-        let detalle = await DetalleVenta.findById(detalleId).populate(
-          "producto"
-        );
-
-        if (!detalle || !detalle.producto) {
-          return res.status(400).json({
-            mensaje: "Detalle o producto no encontrado para la venta.",
-          });
-        }
-
-        let producto = detalle.producto;
-
-        producto.stockActual += detalle.cantidad;
-        await producto.save();
-        await sugerirCompraSiEsNecesario(producto);
-
-        cantidadTotal += detalle.cantidad;
-      }
-
-      // Crear un solo ingreso con los datos de la venta (ya obtenida)
-      const ingreso = new ingreso({
-        tipoOperacion: "Venta Anulada",
-        ventaId: venta._id,
-        cantidadTotal,
-        fechaIngreso: new Date(),
-      });
-
-      await ingreso.save();
-    } else if (estado === "Devolución" && estadoAnterior === "Registrado") {
-      let cantidadTotal = 0;
-
-      for (let detalleId of venta.detalles) {
-        let detalle = await DetalleVenta.findById(detalleId).populate(
-          "producto"
-        );
-
-        if (!detalle || !detalle.producto) {
-          return res.status(400).json({
-            mensaje: "Detalle o producto no encontrado para la venta.",
-          });
-        }
-
-        let producto = detalle.producto;
-
-        producto.stockActual += detalle.cantidad;
-        await producto.save();
-        await sugerirCompraSiEsNecesario(producto);
-
-        cantidadTotal += detalle.cantidad;
-      }
-
-      // Crear una sola devolucion con los datos de la venta (ya obtenida)
-      const devolucion = new devolucionProducto({
-        ventaId: venta._id,
-        cantidadTotal,
-        fechaDevolucion: new Date(),
-      });
-
-      await devolucion.save();
-    }
-
     await venta.save();
-
-    const salidas = await await Salida.find({ ventaId: venta._id });
 
     res.json({
       mensaje: "Venta actualizada correctamente",
       venta,
-      salidas,
     });
   } catch (error) {
     console.log(error);

@@ -545,7 +545,7 @@ exports.actualizarEstado = async (req, res) => {
 
     switch (operacion.tipoOperacion) {
       case 1: // Pedido
-        if (!["Pagado", "En preparacion", "Enviado", "Entregado", "Cancelado"].includes(nuevoEstado)) {
+        if (!["Pendiente", "Pagado", "En preparacion", "Enviado", "Entregado", "Cancelado"].includes(nuevoEstado)) {
           return res.status(400).json({ message: "Estado inválido para pedido" });
         }
 
@@ -561,6 +561,9 @@ exports.actualizarEstado = async (req, res) => {
           if (entrega) {
             let nuevoEstadoEntrega = entrega.estado;
             switch (nuevoEstado) {
+              case "Pagado":
+                nuevoEstadoEntrega = "Pendiente";
+              break;
               case "Pagado":
                 nuevoEstadoEntrega = "Pendiente";
                 break;

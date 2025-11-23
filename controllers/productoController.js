@@ -4,8 +4,6 @@ const Categoria = require('../models/categoria');
 const Marca = require('../models/marca');
 const mongoose = require('mongoose');
 
-const sugerirCompraSiEsNecesario = require('../utils/sugerirCompra');
-
 exports.createProduct = async (req, res) => {
     try {
         const { categoria, marca } = req.body;
