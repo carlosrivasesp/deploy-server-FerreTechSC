@@ -4,6 +4,8 @@ const Venta = require('../models/venta');
 const mongoose = require('mongoose');
 const ExcelJS = require('exceljs');
 const Cotizacion = require('../models/cotizacion');
+const Operacion = require('../models/operacion');
+const DetalleOperacion = require("../models/detalleOperacion");
 
 exports.registrarCotizacion = async (req, res) => {
   try {
@@ -163,18 +165,32 @@ exports.obtenerDetallesCotizacionPorVenta = async (req, res) => {
 
 exports.actualizarCotizacion = async (req, res) => {
   try {
-    const { estado, tipoComprobante, serie, metodoPago } = req.body;
-    const cotizacion = await Cotizacion.findById(req.params.id).populate('cliente');
+    const { estado, tipoComprobante, serie, metodoPago , servicioDelivery} = req.body;
+
+    const cotizacion = await Cotizacion.findById(req.params.id)
+      .populate("cliente")
+      .populate({
+        path: "detalleC",
+        populate: { path: "producto" }
+      });
 
     if (!cotizacion) {
       return res.status(404).json({ mensaje: "Cotización no encontrada" });
     }
 
+    // Actualizar estado
     cotizacion.estado = estado || cotizacion.estado;
     await cotizacion.save();
 
-    // Si la cotización fue confirmada, registrar en "ventas"
-    if (estado === 'Confirmada') {
+
+    //---------------------------------------------
+    // SI LA COTIZACIÓN FUE CONFIRMADA
+    //---------------------------------------------
+    if (estado === "Confirmada") {
+
+      //----------------------------------------------------------
+      // 1️⃣ CREAR VENTA
+      //----------------------------------------------------------
       const nuevaVenta = new Venta({
         tipoComprobante,
         serie,
@@ -183,18 +199,98 @@ exports.actualizarCotizacion = async (req, res) => {
         metodoPago,
         igv: cotizacion.igv,
         total: cotizacion.total,
-        estado: 'Pendiente'
+        estado: "Pendiente"
       });
 
       await nuevaVenta.save();
+
+      //----------------------------------------------------------
+      // 2️⃣ GENERAR nroOperacion (pedido)
+      //----------------------------------------------------------
+      const lastPedido = await Operacion.findOne({ tipoOperacion: 1 })
+        .sort({ nroOperacion: -1 });
+
+      let nroOperacion = "001";
+      if (lastPedido && lastPedido.nroOperacion) {
+        nroOperacion = String(parseInt(lastPedido.nroOperacion) + 1).padStart(3, "0");
+      }
+
+      //----------------------------------------------------------
+      // 3️⃣ GENERAR código único del pedido
+      //----------------------------------------------------------
+      const caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      let codigo, existeCod = true;
+
+      while (existeCod) {
+        codigo = Array.from({ length: 6 },
+          () => caracteres[Math.floor(Math.random() * caracteres.length)]
+        ).join("");
+
+        existeCod = await Operacion.findOne({ codigo });
+      }
+
+      //----------------------------------------------------------
+      // 4️⃣ CALCULAR SUBTOTALES
+      //----------------------------------------------------------
+      let subtotal = 0;
+      const detallesIds = [];
+
+      for (const d of cotizacion.detalleC) {
+        subtotal += d.cantidad * d.precio;
+      }
+
+      const igvCalc = subtotal * 0.18;
+      const totalCalc = subtotal + igvCalc;
+
+      //----------------------------------------------------------
+      // 5️⃣ CREAR PEDIDO (OPERACION)
+      //----------------------------------------------------------
+      const nuevoPedido = new Operacion({
+        nroOperacion,
+        tipoOperacion: 1, // Pedido
+        fechaEmision: Date.now(),
+        fechaVenc: Date.now(),
+        estado: "Pendiente",
+        servicioDelivery: servicioDelivery,
+        cliente: cotizacion.cliente._id,
+        igv: igvCalc.toFixed(2),
+        total: totalCalc.toFixed(2),
+        codigo,
+        detalles: []
+      });
+
+      await nuevoPedido.save();
+
+      //----------------------------------------------------------
+      // 6️⃣ CREAR DETALLES DE OPERACIÓN
+      //----------------------------------------------------------
+      for (const d of cotizacion.detalleC) {
+        const detalle = new DetalleOperacion({
+          operacion: nuevoPedido._id,
+          producto: d.producto._id,
+          nombre: d.producto.nombre,
+          codInt: d.producto.codInt,
+          cantidad: d.cantidad,
+          precio: d.precio,
+          subtotal: d.cantidad * d.precio
+        });
+
+        await detalle.save();
+        detallesIds.push(detalle._id);
+      }
+
+      nuevoPedido.detalles = detallesIds;
+      await nuevoPedido.save();
     }
 
     res.json({ mensaje: "Cotización actualizada", cotizacion });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ mensaje: "Error al actualizar cotización", error });
   }
 };
+
 
 const exportarCotizaciones = async (cotizaciones, res, nombreArchivo) => {
   try {

@@ -538,60 +538,37 @@ exports.obtenerOperacion = async (req, res) => {
 exports.actualizarEstado = async (req, res) => {
   try {
     const { nuevoEstado } = req.body;
-    const operacion = await Operacion.findById(req.params.id).populate(
-      "detalles"
-    );
+    const operacion = await Operacion.findById(req.params.id).populate("detalles");
     if (!operacion) {
       return res.status(404).json({ message: "Operación no encontrada" });
     }
 
     switch (operacion.tipoOperacion) {
-      case 1: // Es un Pedido
-        if (
-          ![
-            "Pagado",
-            "En preparacion",
-            "Enviado",
-            "Entregado",
-            "Cancelado",
-          ].includes(nuevoEstado)
-        ) {
-          return res
-            .status(400)
-            .json({ message: "Estado inválido para pedido" });
+      case 1: // Pedido
+        if (!["Pagado", "En preparacion", "Enviado", "Entregado", "Cancelado"].includes(nuevoEstado)) {
+          return res.status(400).json({ message: "Estado inválido para pedido" });
         }
 
-        if (
-          ["En preparacion", "Enviado", "Entregado"].includes(
-            operacion.estado
-          ) &&
-          nuevoEstado === "Cancelado"
-        ) {
-          return res.status(400).json({
-            message:
-              "No se puede cancelar un pedido en preparación o posterior",
-          });
-        } // Guardar el estado de la Operacion
+        if (["En preparacion", "Enviado", "Entregado"].includes(operacion.estado) && nuevoEstado === "Cancelado") {
+          return res.status(400).json({ message: "No se puede cancelar un pedido en preparación o posterior" });
+        }
 
         operacion.estado = nuevoEstado;
-        await operacion.save(); 
+        await operacion.save();
 
         if (operacion.servicioDelivery) {
           const entrega = await Entrega.findOne({ operacionId: operacion._id });
           if (entrega) {
             let nuevoEstadoEntrega = entrega.estado;
-
             switch (nuevoEstado) {
               case "Pagado":
-                if (entrega.estado === "Pendiente") {
-                  nuevoEstadoEntrega = "Pendiente";
-                }
+                nuevoEstadoEntrega = "Pendiente";
                 break;
               case "En preparacion":
                 nuevoEstadoEntrega = "En proceso";
                 break;
               case "Enviado":
-                nuevoEstadoEntrega = "Enviado"; // ¡El estado clave que faltaba!
+                nuevoEstadoEntrega = "Enviado";
                 break;
               case "Entregado":
                 nuevoEstadoEntrega = "Finalizado";
@@ -600,54 +577,156 @@ exports.actualizarEstado = async (req, res) => {
                 nuevoEstadoEntrega = "Cancelado";
                 break;
             }
-
             if (entrega.estado !== nuevoEstadoEntrega) {
               entrega.estado = nuevoEstadoEntrega;
               await entrega.save();
             }
           }
         }
-        return res.json({
-          message: "Estado del pedido y entrega actualizados",
-          operacion,
-        });
 
-      case 2: // Es una Cotización
+        return res.json({ message: "Estado del pedido y entrega actualizados", operacion });
+
+      case 2: // Cotización
         if (!["Pendiente", "Rechazada", "Aceptada"].includes(nuevoEstado)) {
-          return res
-            .status(400)
-            .json({ message: "Estado inválido para cotización" });
+          return res.status(400).json({ message: "Estado inválido para cotización" });
         }
 
         if (nuevoEstado === "Aceptada") {
           if (!operacion.detalles || operacion.detalles.length === 0) {
-            return res.status(400).json({
-              message:
-                "No hay productos en la cotización para generar la venta",
-            });
+            return res.status(400).json({ message: "No hay productos en la cotización para generar la venta" });
           }
+
           operacion.estado = "Aceptada";
           await operacion.save();
 
+          // --- Crear venta a partir de la cotización ---
+          let subtotal = 0;
+          let productosProcesados = [];
+
+          for (let detalle of operacion.detalles) {
+            const producto = await Producto.findById(detalle.producto);
+            if (!producto) {
+              return res.status(404).json({ message: `Producto con ID ${detalle.producto} no encontrado.` });
+            }
+            if (producto.stockActual < detalle.cantidad) {
+              return res.status(400).json({
+                message: `Stock insuficiente para ${producto.nombre}`,
+                stockActual: producto.stockActual,
+                solicitado: detalle.cantidad,
+              });
+            }
+            productosProcesados.push({ producto, cantidad: detalle.cantidad });
+            subtotal += parseFloat((detalle.cantidad * producto.precio).toFixed(2));
+          }
+
+          // --- Generar código único para la venta ---
+          let codigoUnico;
+          const caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+          let existeOp = true;
+          while (existeOp) {
+            codigoUnico = Array.from({ length: 6 }, () => caracteres[Math.floor(Math.random() * caracteres.length)]).join("");
+            existeOp = await Venta.findOne({ codigo: codigoUnico });
+          }
+
+          const igv = subtotal * 0.18;
+          const total = subtotal + igv;
+
+          // --- Crear Venta ---
+          const nuevaVenta = new Venta({
+            tipoComprobante: operacion.tipoComprobante, // mismo comprobante que la cotización
+            metodoPago: operacion.metodoPago, // mismo método de pago
+            cliente: operacion.cliente,
+            fechaEmision: Date.now(),
+            fechaVenc: new Date(),
+            igv: parseFloat(igv.toFixed(2)),
+            total: parseFloat(total.toFixed(2)),
+            estado: "Registrado",
+            codigo: codigoUnico, // código único generado
+            detalles: [],
+          });
+
+          let detallesVenta = [];
+          for (let { producto, cantidad } of productosProcesados) {
+            const subtotalItem = cantidad * producto.precio;
+            const detalleVenta = new DetalleVenta({
+              venta: nuevaVenta._id,
+              producto: producto._id,
+              nombre: producto.nombre,
+              cantidad,
+              precio: producto.precio,
+              subtotal: subtotalItem,
+            });
+            await detalleVenta.save();
+            detallesVenta.push(detalleVenta._id);
+          }
+
+          nuevaVenta.detalles = detallesVenta;
+          await nuevaVenta.save();
+
+          // --- Crear Pedido basado en la Venta ---
+          const lastPedido = await Operacion.findOne({ tipoOperacion: 1 }).sort({ nroOperacion: -1 });
+
+          let nroOperacion = "001";
+          if (lastPedido && lastPedido.nroOperacion) {
+            const siguiente = parseInt(lastPedido.nroOperacion) + 1;
+            nroOperacion = String(siguiente).padStart(3, "0");
+          }
+
+          const nuevoPedido = new Operacion({
+            nroOperacion,
+            fechaEmision: Date.now(),
+            fechaVenc: new Date(),
+            tipoOperacion: 1, // Pedido
+            estado: "Pagado", // El estado del pedido es Pagado, ya que es una venta confirmada
+            detalles: [],
+            total: total,
+            cliente: operacion.cliente,
+            codigo: codigoUnico, // Puedes usar el mismo código o generar otro si es necesario
+          });
+
+          let detallesPedido = [];
+          for (let { producto, cantidad } of productosProcesados) {
+            const subtotalItem = cantidad * producto.precio;
+            const detallePedido = new DetalleOperacion({
+              operacion: nuevoPedido._id,
+              producto: producto._id,
+              codInt: producto.codInt,
+              nombre: producto.nombre,
+              cantidad,
+              precio: producto.precio,
+              subtotal: subtotalItem,
+            });
+            await detallePedido.save();
+            detallesPedido.push(detallePedido._id);
+          }
+
+          nuevoPedido.detalles = detallesPedido;
+          nuevoPedido.igv = parseFloat(igv.toFixed(2));
+          nuevoPedido.total = parseFloat(total.toFixed(2));
+
+          await nuevoPedido.save();
+
           return res.json({
-            message: "Cotización aceptada",
+            mensaje: "Cotización aceptada, venta y pedido generados correctamente",
+            venta: nuevaVenta,
+            pedido: nuevoPedido,
           });
         }
 
+        // Si no es 'Aceptada', solo actualizamos el estado
         operacion.estado = nuevoEstado;
         await operacion.save();
-        return res.json({
-          message: "Estado actualizado correctamente",
-          operacion,
-        });
+        return res.json({ message: "Estado actualizado correctamente", operacion });
+
     }
+
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({ message: "Error al actualizar estado de la operación" });
+    return res.status(500).json({ message: "Error al actualizar estado de la operación" });
   }
 };
+
+
 // ==========================================================
 // ⭐️ FIN DE LA FUNCIÓN CORREGIDA ⭐️
 // ==========================================================
