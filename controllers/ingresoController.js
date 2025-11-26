@@ -55,7 +55,7 @@ exports.obtenerIngreso = async (req, res) => {
 // Registrar un ingreso (entrada de productos)
 exports.registrarIngreso = async (req, res) => {
   try {
-    const { compraId, cantidadTotal, detalles, fechaIngreso } = req.body;
+    const { compraId, cantidadTotal, detalles} = req.body;
 
     // Buscar la OrdenCompra
     const ordenCompra = await OrdenCompra.findById(compraId).populate('detalles');
@@ -75,7 +75,6 @@ exports.registrarIngreso = async (req, res) => {
       tipoOperacion: 'Orden de compra aprobada',
       compraId,
       cantidadTotal,
-      fechaIngreso,
       detalles
     });
 

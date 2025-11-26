@@ -8,7 +8,7 @@ const salidaSchema = new mongoose.Schema({
     },
   pedidoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Operacion' },
   cantidadTotal: { type: Number, required: true },
-  fechaSalida: { type: Date, required: true }, 
+  fechaSalida: { type: Date, default: Date.now }, 
   detalles: [{
     detalleId: { type: mongoose.Schema.Types.ObjectId, ref: 'DetalleOperacion' },
     cantidadSalida: { type: Number, required: true }
